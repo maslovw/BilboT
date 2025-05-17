@@ -22,7 +22,7 @@ class BilbotTests(unittest.TestCase):
         # Use in-memory database for testing
         self.original_db_path = get_database_path
         
-        # Mock the database path function
+        # Mock the database path function to use in-memory database
         def mock_db_path():
             return ':memory:'
             
@@ -30,15 +30,19 @@ class BilbotTests(unittest.TestCase):
         import bilbot.database.db_manager as db_manager
         db_manager.get_database_path = mock_db_path
         
-        # Initialize the database
+        # Important: With SQLite in-memory database, we need to keep the connection
+        # open for the lifetime of the test and share it with all database operations
+        
+        # Create a connection and store it globally
+        db_manager.conn = sqlite3.connect(':memory:')
+        db_manager.conn.row_factory = sqlite3.Row
+        
+        # Initialize the database tables using this connection
         init_database()
         
-        # Create a connection for testing
-        self.conn = sqlite3.connect(':memory:')
+        # Use the same connection for the test
+        self.conn = db_manager.conn
         self.cursor = self.conn.cursor()
-        
-        # Initialize database tables
-        init_database()
         
     def tearDown(self):
         # Close the connection
