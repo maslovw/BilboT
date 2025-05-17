@@ -176,6 +176,8 @@ cython_debug/
 # Receipt data and database
 data/images/
 data/receipts.db
+data/*.json
+data/*.txt
 
 # Virtual environments
 venv/

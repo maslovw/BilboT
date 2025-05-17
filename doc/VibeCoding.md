@@ -226,3 +226,12 @@ Updated the README.md with a new section explaining debug mode
 Added the feature to the ToDo.md file as completed
 Added startup messages to show when the bot is running in debug mode
 This implementation allows for a more controlled environment during development and testing. When debug mode is enabled, only users already in the database can interact with the bot, preventing unwanted users from accessing it. The addition of the /add_debug_user command provides a convenient way to authorize new users without having to directly edit the database.
+
+**Request**
+check why purchase_date and purchase_time is null in database for this item
+
+**Response**
+...
+I see the issue now. Looking at your processed response file and the parsing code, I can see that the Ollama API is returning a field called purchase_date_time with the value "28.04.2025 12:01:24 Uhr", but the code is only looking for fields named purchase_date or date and purchase_time or time.
+...
+The root issue is that the purchase_date_time field from the API response isn't being correctly handled. We've already updated the _parse_response method to handle this combined field and split it into date and time. Now, let's improve the date parsing in the image_utils.py file to better handle the German format with "Uhr" that we saw in the response.

@@ -122,6 +122,12 @@ async def process_and_save_receipt_data(receipt_id, image_path):
             date_str = receipt_data.get('purchase_date', '')
             time_str = receipt_data.get('purchase_time', '')
             
+            # Clean up time string - remove "Uhr" or other text
+            if time_str:
+                # Remove non-numeric parts except colon and period
+                time_str = ' '.join([part for part in time_str.split() if any(c.isdigit() for c in part)])
+                logger.debug(f"Cleaned time string: {time_str}")
+            
             # Try to parse the date
             try:
                 # Try common date formats
@@ -143,23 +149,59 @@ async def process_and_save_receipt_data(receipt_id, image_path):
                 # First try with both date and time
                 if date_str and time_str:
                     datetime_str = f"{date_str} {time_str}"
+                    logger.debug(f"Attempting to parse datetime: {datetime_str}")
                     for fmt in date_formats:
                         try:
                             receipt_date = datetime.strptime(datetime_str, fmt)
+                            logger.info(f"Successfully parsed date/time with format {fmt}: {receipt_date}")
                             break
                         except ValueError:
                             continue
                 
                 # If that fails, try just the date
                 if receipt_date is None and date_str:
+                    logger.debug(f"Attempting to parse date only: {date_str}")
                     for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%d.%m.%Y']:
                         try:
                             receipt_date = datetime.strptime(date_str, fmt)
+                            logger.info(f"Successfully parsed date with format {fmt}: {receipt_date}")
                             break
                         except ValueError:
                             continue
+                    
+                # If we still don't have a date but we have a time, use today's date with the time
+                if receipt_date is None and time_str:
+                    try:
+                        # Try to parse just the time and combine with today's date
+                        for time_fmt in ['%H:%M:%S', '%H:%M']:
+                            try:
+                                time_obj = datetime.strptime(time_str, time_fmt).time()
+                                today = datetime.today().date()
+                                receipt_date = datetime.combine(today, time_obj)
+                                logger.info(f"Using today's date with parsed time: {receipt_date}")
+                                break
+                            except ValueError:
+                                continue
+                    except Exception as e:
+                        logger.warning(f"Failed to parse time: {e}")
             except Exception as e:
                 logger.warning(f"Could not parse receipt date: {e}")
+                # Try one more approach - look for patterns like DD.MM.YYYY directly
+                if receipt_date is None and date_str:
+                    try:
+                        import re
+                        # Look for date patterns in the format DD.MM.YYYY or similar
+                        date_pattern = re.compile(r'(\d{1,2})[.-/](\d{1,2})[.-/](\d{2,4})')
+                        match = date_pattern.search(date_str)
+                        if match:
+                            day, month, year = match.groups()
+                            # Handle 2-digit years
+                            if len(year) == 2:
+                                year = '20' + year
+                            receipt_date = datetime(int(year), int(month), int(day))
+                            logger.info(f"Parsed date using regex: {receipt_date}")
+                    except Exception as e:
+                        logger.warning(f"Failed to parse date with regex: {e}")
                 
         # Update receipt with extracted data
         success = update_receipt_with_extracted_data(

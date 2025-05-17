@@ -48,12 +48,13 @@ class OllamaImageProcessor:
         self.prompt_template = (
             "Please analyze this receipt image and extract the following information in a structured format:\n"
             "1. List all items and their prices in the format [item: price]\n"
-            "2. Purchase date and time\n"
-            "3. Store name\n"
-            "4. Payment method used\n"
-            "5. Currency used (USD, EUR, etc.)\n"
-            "6. Total amount paid\n\n"
-            "Return only the extracted information in a structured JSON format."
+            "2. Purchase date (format: DD.MM.YYYY)\n"
+            "3. Purchase time (format: HH:MM:SS)\n"
+            "4. Store name\n"
+            "5. Payment method used\n"
+            "6. Currency used (USD, EUR, etc.)\n"
+            "7. Total amount paid\n\n"
+            "Return only the extracted information in a structured JSON format with fields: items, purchase_date, purchase_time, store_name, payment_method, currency, total_amount."
         )
         logger.info(f"Initialized Ollama image processor with model: {model_name}")
     
@@ -80,6 +81,7 @@ class OllamaImageProcessor:
             
             # Process with Ollama
             response = await self._call_ollama_api(img_bytes)
+
             
             # Parse the response
             receipt_data = self._parse_response(response)
@@ -149,12 +151,30 @@ class OllamaImageProcessor:
                     
                     # Stream and collect the response
                     full_response = ""
+                    raw_response = ""
                     async for line in resp.content:
+                        raw_response += line.decode('utf-8') + "\n"
                         data = json.loads(line)
                         if "response" in data:
                             full_response += data["response"]
                         if data.get("done", False):
                             break
+                    
+                    # Save both raw and processed responses for debugging
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    
+                    # Save raw response
+                    response_file_path = f"data/response_{timestamp}_raw.json"
+                    with open(response_file_path, 'w') as f:
+                        f.write(raw_response)
+                    
+                    # Save processed response
+                    processed_file_path = f"data/response_{timestamp}_processed.txt"
+                    with open(processed_file_path, 'w') as f:
+                        f.write(full_response)
+                    
+                    # Log the full processed response for debugging
+                    logger.debug(f"Full processed response: {full_response[:200]}...")
                     
                     return full_response
         
@@ -175,11 +195,15 @@ class OllamaImageProcessor:
         receipt_data = ReceiptData()
         
         try:
+            # Log the start of parsing
+            logger.debug(f"Starting to parse response: {response[:100]}...")
+            
             # Try to extract JSON data from the response
             # Look for JSON-like patterns or try to parse the whole response
             json_str = self._extract_json_from_text(response)
             
             if json_str:
+                logger.info(f"Successfully extracted JSON from response (length: {len(json_str)})")
                 data = json.loads(json_str)
                 
                 # Extract items and prices
@@ -189,24 +213,50 @@ class OllamaImageProcessor:
                             # Already in the right format
                             price = self._parse_price(item_data["price"])
                             receipt_data.items.append(ReceiptItem(item=item_data["item"], price=price))
+                            logger.debug(f"Added item: {item_data['item']} (${price})")
                         elif isinstance(item_data, str):
                             # Format might be "item: price"
                             item, price = self._parse_item_string(item_data)
                             if item and price is not None:
                                 receipt_data.items.append(ReceiptItem(item=item, price=price))
+                                logger.debug(f"Added parsed item: {item} (${price})")
                 
                 # Extract other fields
                 receipt_data.purchase_date = data.get("purchase_date") or data.get("date")
                 receipt_data.purchase_time = data.get("purchase_time") or data.get("time")
+                
+                # Handle combined purchase_date_time field (e.g., "28.04.2025 12:01:24 Uhr")
+                if (not receipt_data.purchase_date or not receipt_data.purchase_time) and "purchase_date_time" in data:
+                    date_time_str = data.get("purchase_date_time")
+                    logger.debug(f"Found purchase_date_time: {date_time_str}")
+                    if date_time_str:
+                        # Try to split date and time
+                        parts = date_time_str.split()
+                        if len(parts) >= 2:
+                            # First part is likely the date
+                            if not receipt_data.purchase_date:
+                                receipt_data.purchase_date = parts[0]
+                                logger.debug(f"Extracted date from purchase_date_time: {receipt_data.purchase_date}")
+                            # Second part is likely the time
+                            if not receipt_data.purchase_time:
+                                receipt_data.purchase_time = parts[1]
+                                logger.debug(f"Extracted time from purchase_date_time: {receipt_data.purchase_time}")
+                
                 receipt_data.store = data.get("store") or data.get("store_name") or data.get("merchant")
                 receipt_data.payment_method = data.get("payment_method") or data.get("payment")
-                receipt_data.total_amount = self._parse_price(data.get("total_amount") or data.get("total"))
+                receipt_data.total_amount = self._parse_price(data.get("total_amount") or data.get("total") or data.get("total_amount_paid"))
                 
                 # Extract currency
                 receipt_data.currency = data.get("currency") or self._extract_currency_from_text(response)
+                
+                # Log extracted fields
+                logger.debug(f"Extracted fields: store={receipt_data.store}, date={receipt_data.purchase_date}, total={receipt_data.total_amount}, currency={receipt_data.currency}")
+            else:
+                logger.warning("Failed to extract JSON from response")
             
             # If JSON parsing failed, try to extract information from text
             if not receipt_data.items and not receipt_data.store:
+                logger.info("JSON parsing did not yield results, trying text extraction")
                 self._extract_data_from_text(response, receipt_data)
             
             # If currency is still not identified but we have price strings, try to extract from them
@@ -216,12 +266,21 @@ class OllamaImageProcessor:
             # If total amount is still missing but we have items, calculate it
             if receipt_data.total_amount is None and receipt_data.items:
                 receipt_data.total_amount = sum(item.price for item in receipt_data.items)
+                logger.debug(f"Calculated total amount: {receipt_data.total_amount}")
             
+            # Final check - log success or failure
+            if receipt_data.items:
+                logger.info(f"Successfully parsed receipt with {len(receipt_data.items)} items")
+            else:
+                logger.warning("No items were extracted from the receipt")
+                
             return receipt_data
             
         except Exception as e:
             logger.error(f"Error parsing Ollama response: {e}")
-            logger.debug(f"Response was: {response}")
+            logger.error(f"Response was: {response[:500]}...")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return receipt_data
     
     def _extract_json_from_text(self, text: str) -> str:
@@ -234,40 +293,57 @@ class OllamaImageProcessor:
         Returns:
             str: The extracted JSON string, or empty string if no JSON found
         """
+        # Remove markdown code block delimiters if present
+        cleaned_text = text
+        # Check for markdown code blocks (```json...```)
+        if cleaned_text.startswith('```'):
+            # Find the first newline after the opening backticks
+            first_newline = cleaned_text.find('\n', 3)
+            if first_newline != -1:
+                # Find the closing backticks
+                closing_ticks = cleaned_text.rfind('```')
+                if closing_ticks > first_newline:
+                    # Extract the content between the backticks
+                    cleaned_text = cleaned_text[first_newline+1:closing_ticks].strip()
+                    logger.debug(f"Extracted JSON from markdown code block: {cleaned_text[:100]}...")
+        
         # Try to find JSON markers
         try:
             # First, try to see if the whole response is valid JSON
-            json.loads(text)
-            return text
+            json.loads(cleaned_text)
+            return cleaned_text
         except:
-            pass
+            logger.debug("Failed to parse entire text as JSON, attempting to extract JSON object")
         
         # Try to extract JSON objects
         try:
-            start_idx = text.find('{')
-            end_idx = text.rfind('}')
+            start_idx = cleaned_text.find('{')
+            end_idx = cleaned_text.rfind('}')
             
             if start_idx != -1 and end_idx != -1 and start_idx < end_idx:
-                json_candidate = text[start_idx:end_idx+1]
+                json_candidate = cleaned_text[start_idx:end_idx+1]
                 # Validate it's proper JSON
                 json.loads(json_candidate)
+                logger.debug(f"Successfully extracted JSON object: {json_candidate[:50]}...")
                 return json_candidate
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"Failed to extract JSON object: {e}")
         
         # Try to extract JSON arrays
         try:
-            start_idx = text.find('[')
-            end_idx = text.rfind(']')
+            start_idx = cleaned_text.find('[')
+            end_idx = cleaned_text.rfind(']')
             
             if start_idx != -1 and end_idx != -1 and start_idx < end_idx:
-                json_candidate = text[start_idx:end_idx+1]
+                json_candidate = cleaned_text[start_idx:end_idx+1]
                 # Validate it's proper JSON
                 json.loads(json_candidate)
+                logger.debug(f"Successfully extracted JSON array: {json_candidate[:50]}...")
                 return json_candidate
-        except:
-            pass
+        except Exception as e:
+            logger.debug(f"Failed to extract JSON array: {e}")
         
+        logger.warning(f"Could not extract JSON from response: {cleaned_text[:100]}...")
         return ""
     
     def _extract_data_from_text(self, text: str, receipt_data: ReceiptData) -> None:
@@ -300,6 +376,15 @@ class OllamaImageProcessor:
                 receipt_data.purchase_date = self._extract_value(line)
             elif any(keyword in lower_line for keyword in ["time:", "time of purchase:"]):
                 receipt_data.purchase_time = self._extract_value(line)
+            elif any(keyword in lower_line for keyword in ["date and time:", "date time:", "datetime:", "purchase_date_time:"]):
+                # Handle combined date/time format
+                value = self._extract_value(line)
+                if value:
+                    parts = value.split()
+                    if len(parts) >= 2:
+                        receipt_data.purchase_date = parts[0]
+                        receipt_data.purchase_time = parts[1]
+                        logger.debug(f"Split date/time: {receipt_data.purchase_date} / {receipt_data.purchase_time}")
             elif any(keyword in lower_line for keyword in ["store:", "merchant:", "vendor:"]):
                 receipt_data.store = self._extract_value(line)
             elif any(keyword in lower_line for keyword in ["payment:", "payment method:", "paid with:", "paid by:"]):
