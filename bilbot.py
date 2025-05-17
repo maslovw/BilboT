@@ -9,7 +9,8 @@ in a SQLite database.
 import logging
 import socket
 import os
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+import asyncio
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 # Local imports
 from bilbot.utils.config import get_bot_token, load_config
@@ -28,7 +29,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def main():
+async def main():
     """Start the bot."""
     # Get the bot token from keyring
     token = get_bot_token()
@@ -37,29 +38,43 @@ def main():
         logger.error("Failed to retrieve bot token from keyring")
         return
 
-    # Create the Updater and pass it the bot token
-    updater = Updater(token)
-
-    # Get the dispatcher to register handlers
-    dispatcher = updater.dispatcher
+    # Create the Application and pass it the bot token
+    application = Application.builder().token(token).build()
 
     # Initialize the database
     init_database()
 
     # Register command handlers
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("help", help_command))
-    dispatcher.add_handler(CommandHandler("list", list_receipts))
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("list", list_receipts))
 
     # Register message handlers
-    dispatcher.add_handler(MessageHandler(Filters.photo, handle_photo))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+    application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    # Start the Bot
-    updater.start_polling()
-
-    # Run the bot until you press Ctrl-C
-    updater.idle()
+    # Start the Bot and wait for termination signal
+    logger.info("Starting bot...")
+    await application.initialize()
+    await application.start()
+    await application.updater.start_polling()
+    
+    logger.info("Bot started. Press Ctrl+C to stop.")
+    
+    # Simple way to keep the bot running
+    try:
+        # Keep the program running until user interrupts
+        while True:
+            await asyncio.sleep(1)
+    except (KeyboardInterrupt, SystemExit):
+        logger.info("User requested shutdown...")
+    finally:
+        # Properly shutdown bot
+        logger.info("Shutting down...")
+        await application.updater.stop()
+        await application.stop()
+        await application.shutdown()
+        logger.info("Bot stopped!")
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

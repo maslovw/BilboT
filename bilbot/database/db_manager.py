@@ -231,6 +231,7 @@ def get_user_receipts(user_id):
     """
     global conn
     local_conn = None
+    should_close = True
     try:
         # Check if we have a global test connection
         if 'conn' in globals() and conn is not None:
@@ -240,8 +241,9 @@ def get_user_receipts(user_id):
             # Create a new connection for normal operation
             db_path = get_database_path()
             local_conn = sqlite3.connect(db_path)
-            should_close = True
+            local_conn.row_factory = sqlite3.Row
         
+        cursor = local_conn.cursor()
         cursor.execute('''
         SELECT r.*, c.chat_title
         FROM receipts r
@@ -257,5 +259,5 @@ def get_user_receipts(user_id):
         logger.error(f"Error retrieving receipts: {e}")
         return []
     finally:
-        if conn:
-            conn.close()
+        if should_close and local_conn:
+            local_conn.close()

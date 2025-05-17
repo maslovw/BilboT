@@ -11,12 +11,12 @@ from bilbot.utils.config import get_image_storage_path
 
 logger = logging.getLogger(__name__)
 
-def save_receipt_image(file_obj, user_id, chat_id, message_id):
+async def save_receipt_image(file_obj, user_id, chat_id, message_id):
     """
     Save a receipt image to the local storage with organized folder structure.
     
     Args:
-        file_obj: File object or path to the image
+        file_obj: File object from telegram API
         user_id (int): ID of the user who sent the image
         chat_id (int): ID of the chat where the image was sent
         message_id (int): ID of the message containing the image
@@ -53,7 +53,7 @@ def save_receipt_image(file_obj, user_id, chat_id, message_id):
             os.rename(file_obj, full_path)
         else:
             # If it's a file object, save it
-            file_obj.download(full_path)
+            await file_obj.download_to_drive(full_path)
             
         logger.info(f"Saved receipt image to {full_path}")
         return full_path

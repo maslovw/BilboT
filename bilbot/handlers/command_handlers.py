@@ -4,19 +4,19 @@ Command handlers for BilboT
 
 import logging
 from telegram import Update
-from telegram.ext import CallbackContext
+from telegram.ext import ContextTypes
 
 from bilbot.database.db_manager import get_user_receipts, save_user, save_chat
 
 logger = logging.getLogger(__name__)
 
-def start(update: Update, context: CallbackContext):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handle the /start command to introduce the bot and its functionality.
     
     Args:
         update (Update): The update containing the command
-        context (CallbackContext): The context object
+        context (ContextTypes.DEFAULT_TYPE): The context object
     """
     user = update.effective_user
     chat = update.effective_chat
@@ -39,15 +39,15 @@ def start(update: Update, context: CallbackContext):
     )
     
     # Send the welcome message
-    update.message.reply_text(welcome_text, parse_mode='Markdown')
+    await update.message.reply_text(welcome_text, parse_mode='Markdown')
 
-def help_command(update: Update, context: CallbackContext):
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handle the /help command to show available bot commands.
     
     Args:
         update (Update): The update containing the command
-        context (CallbackContext): The context object
+        context (ContextTypes.DEFAULT_TYPE): The context object
     """
     help_text = (
         "*BilboT - Receipt Management Bot*\n\n"
@@ -61,15 +61,15 @@ def help_command(update: Update, context: CallbackContext):
         "• All receipts are stored securely for future reference\n"
     )
     
-    update.message.reply_text(help_text, parse_mode='Markdown')
+    await update.message.reply_text(help_text, parse_mode='Markdown')
 
-def list_receipts(update: Update, context: CallbackContext):
+async def list_receipts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handle the /list command to show the user's stored receipts.
     
     Args:
         update (Update): The update containing the command
-        context (CallbackContext): The context object
+        context (ContextTypes.DEFAULT_TYPE): The context object
     """
     user = update.effective_user
     
@@ -77,7 +77,7 @@ def list_receipts(update: Update, context: CallbackContext):
     receipts = get_user_receipts(user.id)
     
     if not receipts:
-        update.message.reply_text("You don't have any stored receipts yet. Send me a photo of a receipt to get started!")
+        await update.message.reply_text("You don't have any stored receipts yet. Send me a photo of a receipt to get started!")
         return
     
     # Create a summary of receipts
@@ -95,4 +95,4 @@ def list_receipts(update: Update, context: CallbackContext):
             f"📝 Comments: {comments[:50]}{'...' if len(comments) > 50 else ''}\n\n"
         )
     
-    update.message.reply_text(receipts_text, parse_mode='Markdown')
+    await update.message.reply_text(receipts_text, parse_mode='Markdown')

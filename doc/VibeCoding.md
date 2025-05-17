@@ -70,3 +70,11 @@ run python -m unittest discover -s tests
 > The tests now pass successfully with Python 3.13. There's only a minor deprecation warning about the datetime adapter in SQLite, which is something that could be addressed in a future update.
 > 
 > This confirms that BilboT can work with Python 3.13 with the fixes we've made. The test suite now passes, which means the core functionality should be compatible with Python 3.13.
+
+**Request**
+run ./bilbot.py
+
+**Response**
+It looks like there's an error when running the BilboT script. The error message indicates an import issue with the python-telegram-bot library. The script is trying to import Filters from telegram.ext, but it cannot be found.
+...
+As I suspected, you're using a newer version of the python-telegram-bot library (v22.1), which has a different API than what the bot was originally written for. The Filters class has been renamed to filters (lowercase) and there have been many other API changes
