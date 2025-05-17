@@ -32,3 +32,21 @@ VsCode Agent: Claude 3.7
 > README with usage instructions
 > Development guide for contributors
 > To-Do list for tracking progress
+
+**Request**
+why is python3.6 required? will it work with python3.13?
+
+**Response**
+> ...
+> Based on the examination of the setup script, requirements.txt, and a sample of the code, here's what I can determine:
+> 
+> Python 3.6 is set as the minimum required version, but the check is designed to allow higher versions
+> The dependencies listed in requirements.txt don't have upper version bounds that would prevent compatibility with Python 3.13
+> Python 3.6 introduced several features like f-strings, which are used in the setup script
+> Will it work with Python 3.13?
+> 
+> In theory, yes. The setup script is checking for Python 3.6 or higher, which would include Python 3.13. However, there are a few considerations:
+> 
+> Some dependencies might have compatibility issues with Python 3.13, even though they don't explicitly state version limits
+> Python 3.6 was released in 2016, and BilboT might use features common to that era but not necessarily compatible with the newest Python syntax and behavior changes
+> If you want to use Python 3.13, you could modify the setup script to update the version check, but first it would be wise to run a compatibility test. Let me modify the setup script to update the version requirements and make it show a warning rather than error when using a very new Python version.

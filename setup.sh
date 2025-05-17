@@ -14,11 +14,24 @@ fi
 
 # Check Python version
 python_version=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
-required_version="3.6"
+min_version="3.6"
+recommended_max="3.12"
 
-if [ "$(printf '%s\n' "$required_version" "$python_version" | sort -V | head -n1)" != "$required_version" ]; then
-    echo "Error: Python $required_version or higher is required (you have $python_version)"
+if [ "$(printf '%s\n' "$min_version" "$python_version" | sort -V | head -n1)" != "$min_version" ]; then
+    echo "Error: Python $min_version or higher is required (you have $python_version)"
     exit 1
+fi
+
+if [ "$(printf '%s\n' "$recommended_max" "$python_version" | sort -V | head -n1)" != "$python_version" ]; then
+    echo "⚠️  Warning: You're using Python $python_version, which is newer than the recommended maximum ($recommended_max)"
+    echo "    The application may work, but hasn't been extensively tested with this version."
+    echo "    Proceed with caution and report any issues."
+    # Give the user a chance to abort
+    read -p "Do you want to continue? (y/n) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        exit 1
+    fi
 fi
 
 echo "✅ Python $python_version detected"
