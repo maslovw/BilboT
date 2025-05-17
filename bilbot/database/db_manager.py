@@ -70,6 +70,7 @@ def init_database():
             store TEXT,
             payment_method TEXT,
             total_amount REAL,
+            currency TEXT,
             extracted_data TEXT,
             FOREIGN KEY (user_id) REFERENCES users (user_id),
             FOREIGN KEY (chat_id) REFERENCES chats (chat_id)
@@ -280,7 +281,7 @@ def save_receipt_items(receipt_id, items):
             local_conn.close()
 
 def update_receipt_with_extracted_data(receipt_id, store=None, payment_method=None, 
-                                      total_amount=None, receipt_date=None, extracted_data=None):
+                                      total_amount=None, receipt_date=None, currency=None, extracted_data=None):
     """
     Update receipt with information extracted from image processing.
     
@@ -290,6 +291,7 @@ def update_receipt_with_extracted_data(receipt_id, store=None, payment_method=No
         payment_method (str): Payment method extracted from receipt
         total_amount (float): Total amount extracted from receipt
         receipt_date (datetime): Date on the receipt
+        currency (str): Currency used in the receipt (USD, EUR, etc.)
         extracted_data (str): JSON string of all extracted data
         
     Returns:
@@ -327,6 +329,10 @@ def update_receipt_with_extracted_data(receipt_id, store=None, payment_method=No
         if total_amount is not None:
             update_query += ", total_amount = ?"
             params.append(total_amount)
+        
+        if currency is not None:
+            update_query += ", currency = ?"
+            params.append(currency)
         
         if receipt_date is not None:
             update_query += ", receipt_date = ?"

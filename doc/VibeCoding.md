@@ -162,3 +162,35 @@ Run the database schema update script with python patch_db_schema.py
 Install any new Python dependencies with pip install -r requirements.txt
 Start the bot with python bilbot.py or python run_dev.py for development mode
 These new features significantly enhance BilboT's ability to process and organize receipt data, making it more useful for expense tracking and receipt management.
+
+**Request**
+
+make a change that the model should recognize currency of the price, and it should give total amount as well
+
+**Response**
+Here's a summary of the changes:
+
+Added a currency field to the ReceiptData model:
+
+Added a new currency field to store the identified currency (USD, EUR, etc.)
+Updated the prompt template:
+
+Added explicit requests for the currency and total amount in the prompt template
+The model will now be instructed to extract this information from receipts
+Enhanced the response parsing logic:
+
+Added a new _extract_currency_from_text method to identify currency symbols and codes
+Improved the currency detection by checking various patterns in text
+Enhanced the total amount detection with additional keywords
+Improved price parsing:
+
+Updated the _parse_price method to better handle currency symbols
+Modified _parse_item_string to detect and store currency information
+Updated the helper function:
+
+Enhanced process_receipt_image to ensure total amount and currency are included in the result
+Added fallback logic to calculate the total if not explicitly found
+These changes will help the Ollama model better recognize and extract currency information from receipt images and ensure that the total amount is properly identified and included in the result.
+
+The code is now ready to handle currency detection and will provide more comprehensive data extraction from receipts, including the total amount.
+

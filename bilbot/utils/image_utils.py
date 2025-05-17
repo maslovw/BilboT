@@ -167,6 +167,7 @@ async def process_and_save_receipt_data(receipt_id, image_path):
             store=receipt_data.get('store'),
             payment_method=receipt_data.get('payment_method'),
             total_amount=receipt_data.get('total_amount'),
+            currency=receipt_data.get('currency'),
             receipt_date=receipt_date,
             extracted_data=json.dumps(receipt_data)
         )

@@ -28,6 +28,7 @@ class ReceiptData(BaseModel):
     store: Optional[str] = Field(None, description="Name of the store")
     payment_method: Optional[str] = Field(None, description="Method of payment (cash, card, etc.)")
     total_amount: Optional[float] = Field(None, description="Total amount paid")
+    currency: Optional[str] = Field(None, description="Currency used for the transaction (USD, EUR, etc.)")
 
 class OllamaImageProcessor:
     """
@@ -49,7 +50,9 @@ class OllamaImageProcessor:
             "1. List all items and their prices in the format [item: price]\n"
             "2. Purchase date and time\n"
             "3. Store name\n"
-            "4. Payment method used\n\n"
+            "4. Payment method used\n"
+            "5. Currency used (USD, EUR, etc.)\n"
+            "6. Total amount paid\n\n"
             "Return only the extracted information in a structured JSON format."
         )
         logger.info(f"Initialized Ollama image processor with model: {model_name}")
@@ -198,10 +201,21 @@ class OllamaImageProcessor:
                 receipt_data.store = data.get("store") or data.get("store_name") or data.get("merchant")
                 receipt_data.payment_method = data.get("payment_method") or data.get("payment")
                 receipt_data.total_amount = self._parse_price(data.get("total_amount") or data.get("total"))
+                
+                # Extract currency
+                receipt_data.currency = data.get("currency") or self._extract_currency_from_text(response)
             
             # If JSON parsing failed, try to extract information from text
             if not receipt_data.items and not receipt_data.store:
                 self._extract_data_from_text(response, receipt_data)
+            
+            # If currency is still not identified but we have price strings, try to extract from them
+            if not receipt_data.currency and (receipt_data.items or receipt_data.total_amount):
+                receipt_data.currency = self._extract_currency_from_text(response)
+                
+            # If total amount is still missing but we have items, calculate it
+            if receipt_data.total_amount is None and receipt_data.items:
+                receipt_data.total_amount = sum(item.price for item in receipt_data.items)
             
             return receipt_data
             
@@ -290,9 +304,15 @@ class OllamaImageProcessor:
                 receipt_data.store = self._extract_value(line)
             elif any(keyword in lower_line for keyword in ["payment:", "payment method:", "paid with:", "paid by:"]):
                 receipt_data.payment_method = self._extract_value(line)
-            elif any(keyword in lower_line for keyword in ["total:", "total amount:", "amount:", "sum:"]):
+            elif any(keyword in lower_line for keyword in ["total:", "total amount:", "amount:", "sum:", "total paid:"]):
                 value = self._extract_value(line)
                 receipt_data.total_amount = self._parse_price(value) if value else None
+            elif any(keyword in lower_line for keyword in ["currency:", "currency used:", "currency type:"]):
+                receipt_data.currency = self._extract_value(line)
+                
+        # If currency is still not detected, try to extract it from the text
+        if receipt_data.currency is None:
+            receipt_data.currency = self._extract_currency_from_text(text)
     
     def _parse_item_string(self, text: str) -> Tuple[str, Optional[float]]:
         """
@@ -310,6 +330,12 @@ class OllamaImageProcessor:
         if len(parts) == 2:
             item = parts[0].strip()
             price_str = parts[1].strip()
+            
+            # Check for currency in the price string
+            currency = self._extract_currency_from_text(price_str)
+            if currency and not hasattr(self, '_detected_currency'):
+                setattr(self, '_detected_currency', currency)
+                
             price = self._parse_price(price_str)
             return item, price
         
@@ -332,6 +358,9 @@ class OllamaImageProcessor:
             return float(price_str)
             
         try:
+            # Store the original string for currency detection later
+            original_price = price_str
+            
             # Remove currency symbols and other non-digit characters except dots and commas
             digits_only = ''.join(c for c in price_str if c.isdigit() or c in '.,')
             
@@ -346,6 +375,89 @@ class OllamaImageProcessor:
             return float(clean_str)
         except:
             return None
+            
+    def _extract_currency_from_text(self, text: str) -> Optional[str]:
+        """
+        Extract currency information from text.
+        
+        Args:
+            text: The text to extract currency from
+            
+        Returns:
+            Optional[str]: The identified currency code or symbol, or None if not found
+        """
+        # Common currency symbols and codes
+        currency_patterns = {
+            '$': 'USD',
+            '€': 'EUR',
+            '£': 'GBP',
+            '¥': 'JPY',
+            '₹': 'INR',
+            '₽': 'RUB',
+            '₩': 'KRW',
+            '₿': 'BTC',
+            'USD': 'USD',
+            'EUR': 'EUR',
+            'GBP': 'GBP',
+            'JPY': 'JPY',
+            'INR': 'INR',
+            'RUB': 'RUB',
+            'KRW': 'KRW',
+            'AUD': 'AUD',
+            'CAD': 'CAD',
+            'CHF': 'CHF',
+            'CNY': 'CNY',
+            'HKD': 'HKD',
+            'NZD': 'NZD',
+            'SEK': 'SEK',
+            'SGD': 'SGD',
+            'THB': 'THB',
+            'ZAR': 'ZAR',
+        }
+        
+        # Check for explicit currency mentions
+        lower_text = text.lower()
+        
+        # Look for "currency: XYZ" patterns
+        for term in ["currency", "currency used", "paid in", "in", "currency is"]:
+            if term in lower_text:
+                idx = lower_text.find(term)
+                if idx != -1:
+                    # Get text after the term
+                    after_term = text[idx + len(term):].strip()
+                    if after_term.startswith(':') or after_term.startswith('-') or after_term.startswith('='):
+                        after_term = after_term[1:].strip()
+                    
+                    # Take first word as potential currency
+                    potential_currency = after_term.split()[0] if after_term.split() else ""
+                    
+                    # Check if it's a recognized currency code
+                    potential_currency = potential_currency.upper()
+                    if potential_currency in currency_patterns:
+                        return potential_currency
+        
+        # Look for currency symbols in the text
+        for symbol, code in currency_patterns.items():
+            if symbol in text:
+                return code
+                
+        # Look for price patterns like $10.99
+        price_patterns = [
+            r'\$\d+',           # $10
+            r'€\d+',           # €10
+            r'£\d+',           # £10
+            r'\d+\s*USD',      # 10 USD
+            r'\d+\s*EUR',      # 10 EUR
+            r'\d+\s*GBP',      # 10 GBP
+        ]
+        
+        for pattern in price_patterns:
+            if any(p in text for p in pattern if not p.isalnum()):
+                for char in pattern:
+                    if not char.isalnum() and char in currency_patterns:
+                        return currency_patterns[char]
+        
+        return None
     
     def _extract_value(self, text: str) -> Optional[str]:
         """
@@ -379,5 +491,13 @@ async def process_receipt_image(image_path: str) -> Optional[Dict]:
     receipt_data = await processor.process_image(image_path)
     
     if receipt_data:
-        return receipt_data.dict()
+        result = receipt_data.dict()
+        # Ensure total amount and currency are included in the result
+        if receipt_data.total_amount is None and receipt_data.items:
+            result['total_amount'] = sum(item.price for item in receipt_data.items)
+            
+        if not receipt_data.currency and hasattr(processor, '_detected_currency'):
+            result['currency'] = getattr(processor, '_detected_currency')
+            
+        return result
     return None

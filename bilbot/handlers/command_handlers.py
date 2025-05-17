@@ -13,6 +13,7 @@ from bilbot.database.db_manager import (
     get_receipt_items
 )
 from bilbot.utils.rate_limiter import check_rate_limit
+from bilbot.utils.currency_utils import get_currency_symbol
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +111,9 @@ async def list_receipts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         received_date = receipt['received_date']
         chat_title = receipt['chat_title'] or 'Private Chat'
         store = receipt.get('store', 'Unknown store')
-        total = f"${receipt['total_amount']:.2f}" if receipt.get('total_amount') else "Unknown amount"
+        currency = receipt.get('currency', 'USD')
+        currency_symbol = get_currency_symbol(currency)
+        total = f"{currency_symbol}{receipt['total_amount']:.2f} {currency}" if receipt.get('total_amount') else "Unknown amount"
         processed = "✅ Processed" if receipt.get('processed') else "⏳ Not processed"
         
         receipts_text += (
@@ -198,6 +201,7 @@ async def receipt_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     store = receipt.get('store', 'Unknown store')
     payment_method = receipt.get('payment_method', 'Unknown payment method')
     total_amount = receipt.get('total_amount')
+    currency = receipt.get('currency', 'USD')
     processed = receipt.get('processed', 0) == 1
     
     details_text += (
@@ -208,7 +212,8 @@ async def receipt_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
     if total_amount is not None:
-        details_text += f"💰 *Total Amount*: ${total_amount:.2f}\n"
+        currency_symbol = get_currency_symbol(currency)
+        details_text += f"💰 *Total Amount*: {currency_symbol}{total_amount:.2f} {currency}\n"
     else:
         details_text += f"💰 *Total Amount*: Unknown\n"
     
@@ -217,8 +222,9 @@ async def receipt_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Receipt items
     if items:
         details_text += "*Items*:\n"
+        currency_symbol = get_currency_symbol(currency)
         for i, item in enumerate(items, 1):
-            details_text += f"{i}. {item['item_name']}: ${item['item_price']:.2f}\n"
+            details_text += f"{i}. {item['item_name']}: {currency_symbol}{item['item_price']:.2f}\n"
     else:
         if processed:
             details_text += "*Items*: No items detected in the receipt.\n"
