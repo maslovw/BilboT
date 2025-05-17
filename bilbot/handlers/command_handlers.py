@@ -89,7 +89,7 @@ async def list_receipts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         comments = receipt['comments'] or 'No comments'
         
         receipts_text += (
-            f"*{i}.* ID: {receipt['id']}\n"
+            #f"*{i}.* ID: {receipt['id']}\n"
             f"📅 Received: {received_date}\n"
             f"💬 From: {chat_title}\n"
             f"📝 Comments: {comments[:50]}{'...' if len(comments) > 50 else ''}\n\n"
