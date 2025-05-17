@@ -14,7 +14,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 # Local imports
 from bilbot.utils.config import get_bot_token, load_config
-from bilbot.handlers.command_handlers import start, help_command, list_receipts
+from bilbot.handlers.command_handlers import start, help_command, list_receipts, receipt_details
 from bilbot.handlers.message_handlers import handle_photo, handle_message
 from bilbot.database.db_manager import init_database
 
@@ -47,7 +47,16 @@ async def main():
     # Register command handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
-    application.add_handler(CommandHandler("list", list_receipts))
+    application.add_handler(CommandHandler("receipts", list_receipts))
+    application.add_handler(CommandHandler("list", list_receipts))  # Keep for backward compatibility
+    
+    # Handler for receipt details command with ID in format /details_123 or /details 123
+    application.add_handler(CommandHandler("details", receipt_details))
+    # Also catch details_<id> pattern
+    application.add_handler(MessageHandler(
+        filters.Regex(r'^/details_\d+$') & filters.COMMAND, 
+        receipt_details
+    ))
 
     # Register message handlers
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))

@@ -9,9 +9,9 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bilbot.utils.config import get_image_storage_path
-from bilbot.utils.image_utils import save_receipt_image
+from bilbot.utils.image_utils import save_receipt_image, process_and_save_receipt_data
 from bilbot.utils.rate_limiter import check_rate_limit
-from bilbot.database.db_manager import save_user, save_chat, save_receipt
+from bilbot.database.db_manager import save_user, save_chat, save_receipt, get_receipt_items
 
 logger = logging.getLogger(__name__)
 
@@ -70,12 +70,46 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
     if receipt_id:
-        # Send confirmation message
+        # Send initial confirmation message
         await context.bot.send_message(
             chat_id=chat.id,
             reply_to_message_id=message.message_id,
-            text=f"Receipt saved! ID: {receipt_id}"
+            text=f"Receipt saved! ID: {receipt_id}\n\nProcessing receipt to extract data..."
         )
+        
+        # Process the receipt image to extract structured data
+        process_success = await process_and_save_receipt_data(receipt_id, file_path)
+        
+        if process_success:
+            # Get the extracted items
+            items = get_receipt_items(receipt_id)
+            
+            if items:
+                # Format the extracted items nicely
+                items_text = "\n".join([f"• {item['item_name']}: ${item['item_price']:.2f}" for item in items])
+                
+                await context.bot.send_message(
+                    chat_id=chat.id,
+                    reply_to_message_id=message.message_id,
+                    text=f"✅ Receipt processed successfully!\n\n"
+                         f"Items detected:\n{items_text}\n\n"
+                         f"You can view complete details later by using the /receipts command."
+                )
+            else:
+                await context.bot.send_message(
+                    chat_id=chat.id,
+                    reply_to_message_id=message.message_id,
+                    text="✅ Receipt processed, but no items were detected. "
+                         "You can view any available details later using the /receipts command."
+                )
+        else:
+            # Processing failed but the receipt was still saved
+            await context.bot.send_message(
+                chat_id=chat.id,
+                reply_to_message_id=message.message_id,
+                text="⚠️ Receipt was saved, but automatic processing couldn't extract all the details. "
+                     "You can still view the receipt using the /receipts command."
+            )
     else:
         # Send error message
         await context.bot.send_message(

@@ -6,6 +6,11 @@ BilboT is a Telegram bot that helps you manage receipts by storing photos and as
 ## Features
 
 - Receive and store receipt images from Telegram
+- Automatic receipt data extraction using AI:
+  - List of items and their prices
+  - Store name
+  - Purchase date and time
+  - Payment method
 - Recognize users across different chat groups
 - Store images in a configurable local folder
 - Save metadata in SQLite database including:
@@ -13,6 +18,8 @@ BilboT is a Telegram bot that helps you manage receipts by storing photos and as
   - User information (name, ID)
   - Chat/group information
   - Comments attached to images
+  - Extracted receipt data
+- View receipt details with simple commands
 - Secure token storage using system keyring
 - Rate limiting to prevent abuse:
   - Per-user limit: 1 message per 10 seconds
@@ -24,6 +31,7 @@ BilboT is a Telegram bot that helps you manage receipts by storing photos and as
 
 - Python 3.6+
 - A Telegram Bot Token (obtain from [@BotFather](https://t.me/botfather))
+- [Ollama](https://ollama.ai/download) installed locally for AI image processing
 
 ### Installation
 
@@ -43,6 +51,16 @@ BilboT is a Telegram bot that helps you manage receipts by storing photos and as
    python -c "import keyring; keyring.set_password('telegram_bilbo', __import__('socket').gethostname(), 'YOUR_BOT_TOKEN')"
    ```
 
+4. Pull the required Ollama model:
+   ```bash
+   ollama pull qwen2.5vl:32b
+   ```
+
+5. Update the database schema:
+   ```bash
+   python patch_db_schema.py
+   ```
+
 ### Running the Bot
 
 Start the bot with:
@@ -52,10 +70,36 @@ python bilbot.py
 
 ## Usage
 
-- Send a photo of a receipt to the bot
-- Optionally add a caption to include notes about the receipt
-- Use `/list` to see your stored receipts
-- Use `/help` to see all available commands
+### Commands
+
+- `/start` - Start the bot and see the welcome message
+- `/help` - Show help information and available commands
+- `/receipts` - List all your stored receipts
+- `/details <receipt_id>` - View detailed information for a specific receipt
+
+### How to Use
+
+1. Start a chat with the bot and send the `/start` command to get started
+2. Send a photo of a receipt to the bot
+3. The bot will save the image and automatically extract information like:
+   - Items and their prices
+   - Store name
+   - Total amount
+   - Purchase date
+   - Payment method
+4. Use `/receipts` to see a list of all your stored receipts
+5. Use `/details <receipt_id>` to view detailed information about a specific receipt
+
+## AI Image Processing
+
+BilboT uses Ollama with the Qwen2.5vl:32b model for receipt image processing. This allows the bot to:
+
+1. Extract text from receipt images
+2. Identify individual items and their prices
+3. Recognize store names and payment methods
+4. Structure the data for easy retrieval
+
+The AI processing happens automatically when you send a receipt image. The structured data is then stored in the database for future reference.
 
 ## Project Structure
 

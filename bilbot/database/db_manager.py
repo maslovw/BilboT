@@ -66,8 +66,24 @@ def init_database():
             received_date TIMESTAMP,
             receipt_date TIMESTAMP,
             comments TEXT,
+            processed INTEGER DEFAULT 0,
+            store TEXT,
+            payment_method TEXT,
+            total_amount REAL,
+            extracted_data TEXT,
             FOREIGN KEY (user_id) REFERENCES users (user_id),
             FOREIGN KEY (chat_id) REFERENCES chats (chat_id)
+        )
+        ''')
+        
+        # Create receipt_items table
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS receipt_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            receipt_id INTEGER,
+            item_name TEXT,
+            item_price REAL,
+            FOREIGN KEY (receipt_id) REFERENCES receipts (id)
         )
         ''')
         
@@ -220,6 +236,122 @@ def save_receipt(message_id, user_id, chat_id, image_path, received_date=None, r
         if local_conn and should_close:
             local_conn.close()
 
+def save_receipt_items(receipt_id, items):
+    """
+    Save receipt items to the database.
+    
+    Args:
+        receipt_id (int): ID of the receipt
+        items (list): List of item dictionaries, each with 'item' and 'price' keys
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    global conn
+    local_conn = None
+    should_close = True
+    try:
+        # Check if we have a global test connection
+        if 'conn' in globals() and conn is not None:
+            local_conn = conn
+            should_close = False
+        else:
+            # Create a new connection for normal operation
+            db_path = get_database_path()
+            local_conn = sqlite3.connect(db_path)
+        
+        cursor = local_conn.cursor()
+        
+        for item_data in items:
+            cursor.execute('''
+            INSERT INTO receipt_items (receipt_id, item_name, item_price)
+            VALUES (?, ?, ?)
+            ''', (receipt_id, item_data['item'], item_data['price']))
+        
+        # Commit changes
+        local_conn.commit()
+        return True
+        
+    except sqlite3.Error as e:
+        logger.error(f"Error saving receipt items: {e}")
+        return False
+    finally:
+        if local_conn and should_close:
+            local_conn.close()
+
+def update_receipt_with_extracted_data(receipt_id, store=None, payment_method=None, 
+                                      total_amount=None, receipt_date=None, extracted_data=None):
+    """
+    Update receipt with information extracted from image processing.
+    
+    Args:
+        receipt_id (int): ID of the receipt
+        store (str): Store name extracted from receipt
+        payment_method (str): Payment method extracted from receipt
+        total_amount (float): Total amount extracted from receipt
+        receipt_date (datetime): Date on the receipt
+        extracted_data (str): JSON string of all extracted data
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    global conn
+    local_conn = None
+    should_close = True
+    try:
+        # Check if we have a global test connection
+        if 'conn' in globals() and conn is not None:
+            local_conn = conn
+            should_close = False
+        else:
+            # Create a new connection for normal operation
+            db_path = get_database_path()
+            local_conn = sqlite3.connect(db_path)
+        
+        cursor = local_conn.cursor()
+        
+        update_query = '''
+        UPDATE receipts
+        SET processed = 1
+        '''
+        params = []
+        
+        if store is not None:
+            update_query += ", store = ?"
+            params.append(store)
+        
+        if payment_method is not None:
+            update_query += ", payment_method = ?"
+            params.append(payment_method)
+        
+        if total_amount is not None:
+            update_query += ", total_amount = ?"
+            params.append(total_amount)
+        
+        if receipt_date is not None:
+            update_query += ", receipt_date = ?"
+            params.append(receipt_date)
+        
+        if extracted_data is not None:
+            update_query += ", extracted_data = ?"
+            params.append(extracted_data)
+        
+        update_query += " WHERE id = ?"
+        params.append(receipt_id)
+        
+        cursor.execute(update_query, params)
+        
+        # Commit changes
+        local_conn.commit()
+        return cursor.rowcount > 0
+        
+    except sqlite3.Error as e:
+        logger.error(f"Error updating receipt with extracted data: {e}")
+        return False
+    finally:
+        if local_conn and should_close:
+            local_conn.close()
+
 def get_user_receipts(user_id):
     """
     Get all receipts for a specific user.
@@ -260,6 +392,50 @@ def get_user_receipts(user_id):
         
     except sqlite3.Error as e:
         logger.error(f"Error retrieving receipts: {e}")
+        return []
+    finally:
+        if should_close and local_conn:
+            local_conn.close()
+
+def get_receipt_items(receipt_id):
+    """
+    Get all items for a specific receipt.
+    
+    Args:
+        receipt_id (int): ID of the receipt
+        
+    Returns:
+        list: List of receipt items
+    """
+    global conn
+    local_conn = None
+    should_close = True
+    try:
+        # Check if we have a global test connection
+        if 'conn' in globals() and conn is not None:
+            local_conn = conn
+            # Set row factory for the connection
+            local_conn.row_factory = sqlite3.Row
+            should_close = False
+        else:
+            # Create a new connection for normal operation
+            db_path = get_database_path()
+            local_conn = sqlite3.connect(db_path)
+            local_conn.row_factory = sqlite3.Row
+        
+        cursor = local_conn.cursor()
+        cursor.execute('''
+        SELECT id, item_name, item_price
+        FROM receipt_items
+        WHERE receipt_id = ?
+        ORDER BY id
+        ''', (receipt_id,))
+        
+        items = [dict(row) for row in cursor.fetchall()]
+        return items
+        
+    except sqlite3.Error as e:
+        logger.error(f"Error retrieving receipt items: {e}")
         return []
     finally:
         if should_close and local_conn:
