@@ -20,11 +20,12 @@
 ## Image Processing
 - [x] Implement receipt image storage with standardized naming
 - [x] Create folder structure for organized image storage
-- [ ] Future: Implement OCR for extracting receipt data (date, total, items)
+- [x] Future: Implement OCR for extracting receipt data (date, total, items)
+- [ ] add check for an image of bill or something else
 
 ## User Interface
 - [x] Implement commands (/start, /help)
-- [ ] Add functionality for users to add comments to receipts
+- [x] Add functionality for users to add comments to receipts
 - [x] Implement status reports for stored receipts
 - [x] Add command to retrieve previously stored receipts
 
