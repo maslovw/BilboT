@@ -7,6 +7,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bilbot.database.db_manager import get_user_receipts, save_user, save_chat
+from bilbot.utils.rate_limiter import check_rate_limit
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         update (Update): The update containing the command
         context (ContextTypes.DEFAULT_TYPE): The context object
     """
+    # Check rate limits before processing
+    if not await check_rate_limit(update, context):
+        return  # Message was rate limited
+    
     user = update.effective_user
     chat = update.effective_chat
     
@@ -49,6 +54,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         update (Update): The update containing the command
         context (ContextTypes.DEFAULT_TYPE): The context object
     """
+    # Check rate limits before processing
+    if not await check_rate_limit(update, context):
+        return  # Message was rate limited
+        
     help_text = (
         "*BilboT - Receipt Management Bot*\n\n"
         "*Available Commands:*\n"
@@ -71,6 +80,10 @@ async def list_receipts(update: Update, context: ContextTypes.DEFAULT_TYPE):
         update (Update): The update containing the command
         context (ContextTypes.DEFAULT_TYPE): The context object
     """
+    # Check rate limits before processing
+    if not await check_rate_limit(update, context):
+        return  # Message was rate limited
+        
     user = update.effective_user
     
     # Get the user's receipts from the database

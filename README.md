@@ -14,6 +14,9 @@ BilboT is a Telegram bot that helps you manage receipts by storing photos and as
   - Chat/group information
   - Comments attached to images
 - Secure token storage using system keyring
+- Rate limiting to prevent abuse:
+  - Per-user limit: 1 message per 10 seconds
+  - Global limit: 60 messages per minute across all users
 
 ## Setup
 
@@ -61,8 +64,23 @@ python bilbot.py
   - `database/`: Database operations
   - `handlers/`: Telegram message and command handlers
   - `utils/`: Utility functions
+    - `rate_limiter.py`: Rate limiting functionality
 - `data/`: Storage for database and images
 - `doc/`: Documentation including To-Do list
+- `tests/`: Test scripts and modules
+
+## Configuration
+
+Configuration is stored in `config.json` and includes the following sections:
+
+- `bot_name`: The name of the bot
+- `image_storage`: Settings for storing receipt images
+- `database`: Database configuration
+- `logging`: Logging settings
+- `rate_limiting`: Rate limiting configuration
+  - `per_user_seconds`: Minimum seconds between messages for a single user (default: 10)
+  - `global_per_minute`: Maximum messages allowed per minute across all users (default: 60)
+  - `enabled`: Whether rate limiting is enabled (default: true)
 
 ## License
 

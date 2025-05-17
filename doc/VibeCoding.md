@@ -98,3 +98,11 @@ Traceback (most recent call last):
 
 I see the error in the logs. The issue is that the get_user_receipts function is still having problems with the SQLite row factory. Let's fix this by ensuring proper row factory setup for all functions
 ...
+
+**Request**
+limit incomming message rate by 1 message per 10 seconds pro user and 60 messager per minute overall
+
+**Response**
+
+I'll help you implement message rate limiting in your Telegram bot project. This will prevent abuse by limiting the number of messages per user and across all users. Let me start by understanding the current structure of your bot and where message handling takes place.
+...

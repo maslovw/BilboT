@@ -19,14 +19,16 @@ bilbot/                   # Core module
   │   └── message_handlers.py  # Message handling
   └── utils/              # Utility functions
       ├── config.py       # Configuration utilities
-      └── image_utils.py  # Image processing utilities
+      ├── image_utils.py  # Image processing utilities
+      └── rate_limiter.py # Rate limiting functionality
 data/                     # Data storage
   ├── images/             # Receipt images
   └── receipts.db         # SQLite database
 doc/                      # Documentation
   └── ToDo.md             # Todo list
 tests/                    # Test files
-  └── test_database.py    # Database tests
+  ├── test_database.py    # Database tests
+  └── test_rate_limiter.py # Rate limiter tests
 ```
 
 ## Development Workflow
@@ -68,6 +70,25 @@ def my_new_command(update: Update, context: CallbackContext):
 dispatcher.add_handler(CommandHandler("mynewcommand", my_new_command))
 ```
 
+### Adding Rate Limiting to a New Handler
+
+When adding a new message handler, make sure to include rate limiting:
+
+1. Import the rate limiter:
+   ```python
+   from bilbot.utils.rate_limiter import check_rate_limit
+   ```
+
+2. Add rate limiting check at the beginning of your handler:
+   ```python
+   async def my_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+       # Check rate limits before processing
+       if not await check_rate_limit(update, context):
+           return  # Message was rate limited
+           
+       # Your handler code here
+   ```
+
 ### Adding Database Functionality
 
 1. Add new database functions in `bilbot/database/db_manager.py`
@@ -97,6 +118,11 @@ The `config.json` file allows customization of various parameters:
     "logging": {
         "level": "INFO",
         "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    },
+    "rate_limiting": {
+        "per_user_seconds": 10,
+        "global_per_minute": 60,
+        "enabled": true
     }
 }
 ```

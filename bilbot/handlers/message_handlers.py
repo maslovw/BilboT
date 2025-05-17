@@ -10,6 +10,7 @@ from telegram.ext import ContextTypes
 
 from bilbot.utils.config import get_image_storage_path
 from bilbot.utils.image_utils import save_receipt_image
+from bilbot.utils.rate_limiter import check_rate_limit
 from bilbot.database.db_manager import save_user, save_chat, save_receipt
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,10 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         update (Update): The update containing the photo
         context (ContextTypes.DEFAULT_TYPE): The context object
     """
+    # Check rate limits before processing
+    if not await check_rate_limit(update, context):
+        return  # Message was rate limited
+    
     # Get user information
     user = update.effective_user
     chat = update.effective_chat
@@ -87,6 +92,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         update (Update): The update containing the message
         context (ContextTypes.DEFAULT_TYPE): The context object
     """
+    # Check rate limits before processing
+    if not await check_rate_limit(update, context):
+        return  # Message was rate limited
+    
     # For now, just log the message
     user = update.effective_user
     chat = update.effective_chat
