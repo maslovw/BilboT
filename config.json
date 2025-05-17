@@ -1,0 +1,15 @@
+{
+    "bot_name": "BilboT",
+    "image_storage": {
+        "base_path": "data/images",
+        "max_size_mb": 50,
+        "organize_by_date": true
+    },
+    "database": {
+        "path": "data/receipts.db"
+    },
+    "logging": {
+        "level": "INFO",
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    }
+}

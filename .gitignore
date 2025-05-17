@@ -172,3 +172,24 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Receipt data and database
+data/images/
+data/receipts.db
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# Local development settings
+.env
+
+# IDE specific files
+.idea/
+.vscode/
+*.sublime-*
+
+# OS specific files
+.DS_Store
+Thumbs.db
