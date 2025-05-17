@@ -12,6 +12,9 @@ def get_currency_symbol(currency_code):
     Returns:
         str: Currency symbol
     """
+    if currency_code is None:
+        return '$'  # Default symbol if currency_code is None
+        
     currency_symbols = {
         'USD': '$',
         'EUR': '€',

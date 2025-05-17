@@ -235,3 +235,28 @@ check why purchase_date and purchase_time is null in database for this item
 I see the issue now. Looking at your processed response file and the parsing code, I can see that the Ollama API is returning a field called purchase_date_time with the value "28.04.2025 12:01:24 Uhr", but the code is only looking for fields named purchase_date or date and purchase_time or time.
 ...
 The root issue is that the purchase_date_time field from the API response isn't being correctly handled. We've already updated the _parse_response method to handle this combined field and split it into date and time. Now, let's improve the date parsing in the image_utils.py file to better handle the German format with "Uhr" that we saw in the response.
+
+**Request**
+
+start the bot ./bulbot.py
+// meanwhile executed \list in the telegram
+
+**Response**
+...
+The bot is now running smoothly. Here's a summary of the changes we made to fix the issues:
+
+Fixed the get_currency_symbol function to handle None values by checking for them explicitly at the beginning of the function.
+
+Added extra safety in the list_receipts function to ensure the currency is never None.
+
+Switched from Markdown to HTML formatting in all parts of the code that display text to users. HTML is generally more robust when dealing with special characters in text.
+
+Added proper escaping of user-generated content (like store names, item names, etc.) to prevent formatting issues.
+
+The bot should now handle all the cases correctly, including:
+
+Store names that contain special Markdown characters
+Item names with special characters
+Currency symbols for different currencies
+Proper formatting of all messages
+If you want to test the bot, you can use the /receipts command in your Telegram chat to see if it displays your receipt list correctly, or use the /details_<id> command to view detailed information about a specific receipt.
