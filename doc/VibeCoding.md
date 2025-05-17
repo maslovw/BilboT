@@ -78,3 +78,23 @@ run ./bilbot.py
 It looks like there's an error when running the BilboT script. The error message indicates an import issue with the python-telegram-bot library. The script is trying to import Filters from telegram.ext, but it cannot be found.
 ...
 As I suspected, you're using a newer version of the python-telegram-bot library (v22.1), which has a different API than what the bot was originally written for. The Filters class has been renamed to filters (lowercase) and there have been many other API changes
+
+**Request**
+```
+2025-05-17 21:36:00,809 - telegram.ext.Application - ERROR - No error handlers are registered, logging exception.
+Traceback (most recent call last):
+  File "/Users/viacheslav.maslov/EDF/tools/BilboT/venv/lib/python3.13/site-packages/telegram/ext/_application.py", line 1298, in process_update
+    await coroutine
+  File "/Users/viacheslav.maslov/EDF/tools/BilboT/venv/lib/python3.13/site-packages/telegram/ext/_handlers/basehandler.py", line 158, in handle_update
+    return await self.callback(update, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/viacheslav.maslov/EDF/tools/BilboT/bilbot/handlers/command_handlers.py", line 77, in list_receipts
+    receipts = get_user_receipts(user.id)
+  File "/Users/viacheslav.maslov/EDF/tools/BilboT/bilbot/database/db_manager.py", line 255, in get_user_receipts
+    receipts = [dict(row) for row in cursor.fetchall()]
+```
+
+**Response**
+
+I see the error in the logs. The issue is that the get_user_receipts function is still having problems with the SQLite row factory. Let's fix this by ensuring proper row factory setup for all functions
+...

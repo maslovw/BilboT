@@ -19,16 +19,20 @@ def init_database():
     Initialize the SQLite database with necessary tables if they don't exist.
     """
     global conn
+    local_conn = None
+    should_close = True
     
     try:
         # If a connection was set by the tests, use it
         if 'conn' in globals() and conn is not None:
-            c = conn.cursor()
+            local_conn = conn
+            should_close = False
         else:
             # Normal operation - create a new connection
             db_path = get_database_path()
-            conn = sqlite3.connect(db_path)
-            c = conn.cursor()
+            local_conn = sqlite3.connect(db_path)
+        
+        c = local_conn.cursor()
         
         # Create users table
         c.execute('''
@@ -67,15 +71,15 @@ def init_database():
         )
         ''')
         
-        conn.commit()
+        local_conn.commit()
         logger.info("Database initialized successfully")
         
     except sqlite3.Error as e:
         logger.error(f"Database error: {e}")
     finally:
         # Don't close the connection if it's a shared test connection
-        if conn and 'conn' not in globals():
-            conn.close()
+        if local_conn and should_close:
+            local_conn.close()
 
 def save_user(user_id, username=None, first_name=None, last_name=None):
     """
@@ -92,27 +96,26 @@ def save_user(user_id, username=None, first_name=None, last_name=None):
     """
     global conn
     local_conn = None
+    should_close = True
     try:
         # Check if we have a global test connection
         if 'conn' in globals() and conn is not None:
-            cursor = conn.cursor()
+            local_conn = conn
             should_close = False
         else:
             # Create a new connection for normal operation
             db_path = get_database_path()
             local_conn = sqlite3.connect(db_path)
-            cursor = local_conn.cursor()
-            should_close = True
+        
+        cursor = local_conn.cursor()
         
         cursor.execute('''
         INSERT OR REPLACE INTO users (user_id, username, first_name, last_name)
         VALUES (?, ?, ?, ?)
         ''', (user_id, username, first_name, last_name))
         
-        if should_close:
-            local_conn.commit()
-        else:
-            conn.commit()
+        # Commit changes
+        local_conn.commit()
         return True
         
     except sqlite3.Error as e:
@@ -136,27 +139,26 @@ def save_chat(chat_id, chat_title=None, chat_type=None):
     """
     global conn
     local_conn = None
+    should_close = True
     try:
         # Check if we have a global test connection
         if 'conn' in globals() and conn is not None:
-            cursor = conn.cursor()
+            local_conn = conn
             should_close = False
         else:
             # Create a new connection for normal operation
             db_path = get_database_path()
             local_conn = sqlite3.connect(db_path)
-            cursor = local_conn.cursor()
-            should_close = True
+        
+        cursor = local_conn.cursor()
         
         cursor.execute('''
         INSERT OR REPLACE INTO chats (chat_id, chat_title, chat_type)
         VALUES (?, ?, ?)
         ''', (chat_id, chat_title, chat_type))
         
-        if should_close:
-            local_conn.commit()
-        else:
-            conn.commit()
+        # Commit changes
+        local_conn.commit()
         return True
         
     except sqlite3.Error as e:
@@ -184,17 +186,18 @@ def save_receipt(message_id, user_id, chat_id, image_path, received_date=None, r
     """
     global conn
     local_conn = None
+    should_close = True
     try:
         # Check if we have a global test connection
         if 'conn' in globals() and conn is not None:
-            cursor = conn.cursor()
+            local_conn = conn
             should_close = False
         else:
             # Create a new connection for normal operation
             db_path = get_database_path()
             local_conn = sqlite3.connect(db_path)
-            cursor = local_conn.cursor()
-            should_close = True
+        
+        cursor = local_conn.cursor()
         
         if received_date is None:
             received_date = datetime.now()
@@ -206,10 +209,8 @@ def save_receipt(message_id, user_id, chat_id, image_path, received_date=None, r
         
         receipt_id = cursor.lastrowid
         
-        if should_close:
-            local_conn.commit()
-        else:
-            conn.commit()
+        # Commit changes
+        local_conn.commit()
         return receipt_id
         
     except sqlite3.Error as e:
@@ -236,6 +237,8 @@ def get_user_receipts(user_id):
         # Check if we have a global test connection
         if 'conn' in globals() and conn is not None:
             local_conn = conn
+            # Set row factory for the connection
+            local_conn.row_factory = sqlite3.Row
             should_close = False
         else:
             # Create a new connection for normal operation
