@@ -24,6 +24,7 @@ BilboT is a Telegram bot that helps you manage receipts by storing photos and as
 - Rate limiting to prevent abuse:
   - Per-user limit: 1 message per 10 seconds
   - Global limit: 60 messages per minute across all users
+- Debug mode for restricted access and development
 
 ## Setup
 
@@ -125,6 +126,24 @@ Configuration is stored in `config.json` and includes the following sections:
   - `per_user_seconds`: Minimum seconds between messages for a single user (default: 10)
   - `global_per_minute`: Maximum messages allowed per minute across all users (default: 60)
   - `enabled`: Whether rate limiting is enabled (default: true)
+- `debug`: Enable debug mode to restrict access to authorized users
+
+### Debug Mode
+
+BilboT includes a debug mode that can be enabled by setting `"debug": true` in the `config.json` file. When debug mode is enabled:
+
+- Only users who already exist in the database can interact with the bot
+- New users will receive a message that they are not authorized
+- The `/add_debug_user` command becomes available to add new authorized users
+- The `/help` command will show additional debug-specific commands and indicate that debug mode is active
+
+To add a new authorized user in debug mode:
+
+```bash
+/add_debug_user <user_id> [username] [first_name] [last_name]
+```
+
+This feature is useful for testing and development or in situations where you want to restrict access to the bot.
 
 ## License
 

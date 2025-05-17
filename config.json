@@ -16,5 +16,6 @@
         "per_user_seconds": 10,
         "global_per_minute": 60,
         "enabled": true
-    }
+    },
+    "debug": true
 }

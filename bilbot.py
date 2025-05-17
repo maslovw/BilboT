@@ -57,13 +57,22 @@ async def main():
         filters.Regex(r'^/details_\d+$') & filters.COMMAND, 
         receipt_details
     ))
+    
+    # Debug mode commands
+    if config.get('debug', False):
+        from bilbot.handlers.command_handlers import add_debug_user
+        application.add_handler(CommandHandler("add_debug_user", add_debug_user))
 
     # Register message handlers
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     # Start the Bot and wait for termination signal
-    logger.info("Starting bot...")
+    if config.get('debug', False):
+        logger.info("Starting bot in DEBUG MODE - Only authorized users will be allowed")
+    else:
+        logger.info("Starting bot...")
+    
     await application.initialize()
     await application.start()
     await application.updater.start_polling()

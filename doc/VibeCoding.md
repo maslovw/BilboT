@@ -194,3 +194,35 @@ These changes will help the Ollama model better recognize and extract currency i
 
 The code is now ready to handle currency detection and will provide more comprehensive data extraction from receipts, including the total amount.
 
+**Request**
+
+for debug purpose add debug = true to config, and if debug the block reception from users that are not in database
+
+**Response**
+...
+Great! I've successfully implemented a debug mode for the BilboT Telegram receipt management bot. Here's a summary of the changes:
+
+Configuration:
+
+Added a debug flag to the config.json file, set to true by default
+Created helper functions in config.py to check if debug mode is enabled
+User Authentication:
+
+Added a new function user_exists() in db_manager.py to check if a user is in the database
+Created a helper function check_debug_authorization() to verify users in debug mode
+Updated all handlers to check for user authorization when debug mode is enabled
+Command Handlers:
+
+Modified start, help_command, list_receipts, and receipt_details to respect debug mode
+Added a new command add_debug_user to allow adding authorized users to the database
+Updated the help text to show debug-specific commands when in debug mode
+Message Handlers:
+
+Updated both photo and text message handlers to check for authorization in debug mode
+Added informative error messages for non-authorized users
+Documentation:
+
+Updated the README.md with a new section explaining debug mode
+Added the feature to the ToDo.md file as completed
+Added startup messages to show when the bot is running in debug mode
+This implementation allows for a more controlled environment during development and testing. When debug mode is enabled, only users already in the database can interact with the bot, preventing unwanted users from accessing it. The addition of the /add_debug_user command provides a convenient way to authorize new users without having to directly edit the database.

@@ -446,3 +446,39 @@ def get_receipt_items(receipt_id):
     finally:
         if should_close and local_conn:
             local_conn.close()
+
+def user_exists(user_id):
+    """
+    Check if a user exists in the database.
+    
+    Args:
+        user_id (int): Telegram user ID
+        
+    Returns:
+        bool: True if the user exists, False otherwise
+    """
+    global conn
+    local_conn = None
+    should_close = True
+    try:
+        # Check if we have a global test connection
+        if 'conn' in globals() and conn is not None:
+            local_conn = conn
+            should_close = False
+        else:
+            # Create a new connection for normal operation
+            db_path = get_database_path()
+            local_conn = sqlite3.connect(db_path)
+        
+        cursor = local_conn.cursor()
+        cursor.execute('SELECT user_id FROM users WHERE user_id = ?', (user_id,))
+        
+        result = cursor.fetchone()
+        return result is not None
+        
+    except sqlite3.Error as e:
+        logger.error(f"Error checking if user exists: {e}")
+        return False
+    finally:
+        if should_close and local_conn:
+            local_conn.close()

@@ -8,10 +8,10 @@ from datetime import datetime
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from bilbot.utils.config import get_image_storage_path
+from bilbot.utils.config import get_image_storage_path, is_debug_mode
 from bilbot.utils.image_utils import save_receipt_image, process_and_save_receipt_data
 from bilbot.utils.rate_limiter import check_rate_limit
-from bilbot.database.db_manager import save_user, save_chat, save_receipt, get_receipt_items
+from bilbot.database.db_manager import save_user, save_chat, save_receipt, get_receipt_items, user_exists
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,18 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     chat = update.effective_chat
     message = update.effective_message
+    
+    # In debug mode, check if the user is in the database
+    if is_debug_mode():
+        if not user_exists(user.id):
+            logger.warning(f"Debug mode: Blocking message from unknown user {user.id} ({user.username})")
+            await context.bot.send_message(
+                chat_id=chat.id,
+                reply_to_message_id=message.message_id,
+                text="⚠️ Debug mode is enabled. Only authorized users can submit receipts."
+            )
+            return
+        logger.info(f"Debug mode: Allowing message from known user {user.id} ({user.username})")
     
     # Save user and chat info to database
     save_user(user.id, user.username, user.first_name, user.last_name)
@@ -130,11 +142,29 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not await check_rate_limit(update, context):
         return  # Message was rate limited
     
-    # For now, just log the message
+    # Get user information
     user = update.effective_user
     chat = update.effective_chat
-    message_text = update.message.text
+    message = update.message
+    message_text = message.text
     
+    # In debug mode, check if the user is in the database
+    if is_debug_mode():
+        if not user_exists(user.id):
+            logger.warning(f"Debug mode: Blocking message from unknown user {user.id} ({user.username})")
+            await context.bot.send_message(
+                chat_id=chat.id,
+                reply_to_message_id=message.message_id,
+                text="⚠️ Debug mode is enabled. Only authorized users can interact with the bot."
+            )
+            return
+        logger.info(f"Debug mode: Allowing message from known user {user.id} ({user.username})")
+    
+    # Save user and chat info to database
+    save_user(user.id, user.username, user.first_name, user.last_name)
+    save_chat(chat.id, chat.title, chat.type)
+    
+    # For now, just log the message
     logger.info(f"Received message from {user.username} in {chat.title if chat.title else 'private chat'}: {message_text}")
     
     # In the future, this could handle adding comments to previously sent receipts

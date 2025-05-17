@@ -10,10 +10,11 @@ from telegram.ext import ContextTypes
 
 from bilbot.database.db_manager import (
     get_user_receipts, save_user, save_chat, 
-    get_receipt_items
+    get_receipt_items, user_exists
 )
 from bilbot.utils.rate_limiter import check_rate_limit
 from bilbot.utils.currency_utils import get_currency_symbol
+from bilbot.utils.config import is_debug_mode
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check rate limits before processing
     if not await check_rate_limit(update, context):
         return  # Message was rate limited
+    
+    # Check debug authorization
+    if not await check_debug_authorization(update, context):
+        return  # User not authorized in debug mode
     
     user = update.effective_user
     chat = update.effective_chat
@@ -65,6 +70,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check rate limits before processing
     if not await check_rate_limit(update, context):
         return  # Message was rate limited
+    
+    # Check debug authorization
+    if not await check_debug_authorization(update, context):
+        return  # User not authorized in debug mode
         
     help_text = (
         "*BilboT - Receipt Management Bot*\n\n"
@@ -72,8 +81,19 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/start - Start the bot and see welcome message\n"
         "/help - Show this help message\n"
         "/receipts - List your stored receipts\n"
-        "/details <receipt_id> - View detailed information for a specific receipt\n\n"
-        "*How to use:*\n"
+        "/details <receipt_id> - View detailed information for a specific receipt\n"
+    )
+    
+    # Add debug mode commands if in debug mode
+    if is_debug_mode():
+        help_text += (
+            "\n*Debug Mode Commands:*\n"
+            "/add_debug_user <user_id> [username] [first_name] [last_name] - Add a user to the database\n"
+            "\n⚠️ *Debug Mode is ENABLED* - Only authorized users can interact with the bot.\n"
+        )
+    
+    help_text += (
+        "\n*How to use:*\n"
         "• Simply send a photo of a receipt to store it\n"
         "• Add a caption to include notes about the receipt\n"
         "• I'll automatically extract items, prices, store name, and payment method\n"
@@ -93,6 +113,10 @@ async def list_receipts(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check rate limits before processing
     if not await check_rate_limit(update, context):
         return  # Message was rate limited
+    
+    # Check debug authorization
+    if not await check_debug_authorization(update, context):
+        return  # User not authorized in debug mode
         
     user = update.effective_user
     
@@ -143,6 +167,10 @@ async def receipt_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Check rate limits before processing
     if not await check_rate_limit(update, context):
         return  # Message was rate limited
+    
+    # Check debug authorization
+    if not await check_debug_authorization(update, context):
+        return  # User not authorized in debug mode
     
     user = update.effective_user
     command_text = update.message.text.strip()
@@ -236,3 +264,89 @@ async def receipt_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     # Send the detailed information
     await update.message.reply_text(details_text, parse_mode='Markdown')
+
+async def check_debug_authorization(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Check if the user is authorized to use the bot in debug mode.
+    
+    Args:
+        update (Update): The update object
+        context (ContextTypes.DEFAULT_TYPE): The context object
+        
+    Returns:
+        bool: True if the user is authorized, False otherwise
+    """
+    if not is_debug_mode():
+        # Debug mode is disabled, all users are authorized
+        return True
+        
+    user = update.effective_user
+    chat = update.effective_chat
+    message = update.effective_message
+    
+    # In debug mode, check if the user is in the database
+    if not user_exists(user.id):
+        logger.warning(f"Debug mode: Blocking command from unknown user {user.id} ({user.username})")
+        await context.bot.send_message(
+            chat_id=chat.id,
+            reply_to_message_id=message.message_id,
+            text="⚠️ Debug mode is enabled. Only authorized users can use this command."
+        )
+        return False
+        
+    logger.info(f"Debug mode: Allowing command from known user {user.id} ({user.username})")
+    return True
+
+async def add_debug_user(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handle the /add_debug_user command to add a user to the database in debug mode.
+    This command can only be run by users already in the database.
+    
+    Args:
+        update (Update): The update containing the command
+        context (ContextTypes.DEFAULT_TYPE): The context object
+    """
+    # Check rate limits before processing
+    if not await check_rate_limit(update, context):
+        return  # Message was rate limited
+    
+    # Make sure the command issuer is authorized
+    if not await check_debug_authorization(update, context):
+        return  # User not authorized in debug mode
+    
+    # Get arguments
+    args = context.args
+    if not args or len(args) < 1:
+        await update.message.reply_text(
+            "Please provide a user ID to add to the debug users list.\n"
+            "Usage: /add_debug_user <user_id> [username] [first_name] [last_name]"
+        )
+        return
+    
+    try:
+        user_id = int(args[0])
+        username = args[1] if len(args) > 1 else None
+        first_name = args[2] if len(args) > 2 else "Debug"
+        last_name = args[3] if len(args) > 3 else "User"
+        
+        # Check if user already exists
+        if user_exists(user_id):
+            await update.message.reply_text(f"User with ID {user_id} is already in the database.")
+            return
+        
+        # Add the user to the database
+        success = save_user(user_id, username, first_name, last_name)
+        
+        if success:
+            await update.message.reply_text(
+                f"✅ Successfully added user to the database:\n"
+                f"ID: {user_id}\n"
+                f"Username: {username or 'Not provided'}\n"
+                f"Name: {first_name} {last_name}"
+            )
+        else:
+            await update.message.reply_text("❌ Failed to add user to the database. Please check the logs.")
+            
+    except ValueError:
+        await update.message.reply_text("Invalid user ID. Please provide a numeric user ID.")
+        return

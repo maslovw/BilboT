@@ -33,6 +33,8 @@
 - [x] Create configuration file for customizable settings
 - [x] Set up error handling and logging
 - [x] Add input validation and sanitization
+- [x] Implement rate limiting to prevent abuse
+- [x] Add debug mode to restrict access to authorized users
 
 ## Testing
 - [x] Create test cases for core functionality

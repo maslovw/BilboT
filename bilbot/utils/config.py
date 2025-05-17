@@ -96,3 +96,13 @@ def get_database_path():
         os.makedirs(data_dir)
         
     return db_path
+
+def is_debug_mode():
+    """
+    Check if the bot is running in debug mode.
+    
+    Returns:
+        bool: True if debug mode is enabled, False otherwise
+    """
+    config = load_config()
+    return config.get('debug', False)
