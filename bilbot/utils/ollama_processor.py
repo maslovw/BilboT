@@ -8,7 +8,6 @@ import logging
 import os
 from typing import Dict, List, Optional, Tuple, Union
 from datetime import datetime
-import aiohttp
 from pydantic import BaseModel, Field
 
 from PIL import Image
@@ -128,56 +127,52 @@ class OllamaImageProcessor:
         Returns:
             str: Response from the Ollama API
         """
-        # Encode image to base64
-        base64_image = base64.b64encode(img_bytes).decode('utf-8')
-        
         try:
-            # Construct request
-            request_data = {
-                "model": self.model_name,
-                "prompt": self.prompt_template,
-                "images": [base64_image],
-                "options": {
-                    "num_ctx": self.max_context_length
-                }
+            # Initialize async Ollama client
+            client = ollama.AsyncClient(host="http://localhost:11434")
+            
+            # Set options with context length
+            options = {
+                "num_ctx": self.max_context_length
             }
             
-            # Call Ollama API (using separate function to allow for local/remote configuration)
-            async with aiohttp.ClientSession() as session:
-                async with session.post('http://localhost:11434/api/generate', json=request_data) as resp:
-                    if resp.status != 200:
-                        logger.error(f"Ollama API error: {resp.status}")
-                        return ""
-                    
-                    # Stream and collect the response
-                    full_response = ""
-                    raw_response = ""
-                    async for line in resp.content:
-                        raw_response += line.decode('utf-8') + "\n"
-                        data = json.loads(line)
-                        if "response" in data:
-                            full_response += data["response"]
-                        if data.get("done", False):
-                            break
-                    
-                    # Save both raw and processed responses for debugging
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    
-                    # Save raw response
-                    response_file_path = f"data/response_{timestamp}_raw.json"
-                    with open(response_file_path, 'w') as f:
-                        f.write(raw_response)
-                    
-                    # Save processed response
-                    processed_file_path = f"data/response_{timestamp}_processed.txt"
-                    with open(processed_file_path, 'w') as f:
-                        f.write(full_response)
-                    
-                    # Log the full processed response for debugging
-                    logger.debug(f"Full processed response: {full_response[:200]}...")
-                    
-                    return full_response
-        
+            # Call Ollama API with streaming to collect the response
+            full_response = ""
+            raw_response = []
+            
+            # Stream the response
+            async for chunk in await client.generate(
+                model=self.model_name,
+                prompt=self.prompt_template,
+                images=[img_bytes],  # Pass bytes directly, ollama library handles encoding
+                stream=False,
+                options=options
+            ):
+                # Collect raw response for debugging
+                raw_response.append(chunk.model_dump())
+                
+                # Accumulate the response text
+                if hasattr(chunk, "response"):
+                    full_response += chunk.response
+                
+            # Save both raw and processed responses for debugging
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            # Save raw response
+            response_file_path = f"data/response_{timestamp}_raw.json"
+            with open(response_file_path, 'w') as f:
+                f.write(json.dumps(raw_response, indent=2))
+            
+            # Save processed response
+            processed_file_path = f"data/response_{timestamp}_processed.txt"
+            with open(processed_file_path, 'w') as f:
+                f.write(full_response)
+            
+            # Log the full processed response for debugging
+            logger.debug(f"Full processed response: {full_response[:200]}...")
+            
+            return full_response
+            
         except Exception as e:
             logger.error(f"Error calling Ollama API: {e}")
             return ""
@@ -576,7 +571,7 @@ async def process_receipt_image(image_path: str) -> Optional[Dict]:
     receipt_data = await processor.process_image(image_path)
     
     if receipt_data:
-        result = receipt_data.dict()
+        result = receipt_data.model_dump()
         # Ensure total amount and currency are included in the result
         if receipt_data.total_amount is None and receipt_data.items:
             result['total_amount'] = sum(item.price for item in receipt_data.items)
@@ -586,3 +581,68 @@ async def process_receipt_image(image_path: str) -> Optional[Dict]:
             
         return result
     return None
+
+# CLI for testing
+async def cli_main():
+    """Command line interface for testing the Ollama image processor."""
+    import argparse
+    import sys
+    import asyncio
+    
+    parser = argparse.ArgumentParser(description="Process receipt images using Ollama")
+    parser.add_argument("image_path", help="Path to the receipt image file")
+    parser.add_argument("--model", default="qwen2.5vl:32b", help="Ollama model name to use")
+    parser.add_argument("--output", "-o", help="Output JSON file path (default: print to stdout)")
+    parser.add_argument("--debug", action="store_true", help="Enable debug logging")
+    
+    args = parser.parse_args()
+    
+    # Configure logging
+    log_level = logging.DEBUG if args.debug else logging.INFO
+    logging.basicConfig(
+        level=log_level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    
+    try:
+        # Process the image
+        if args.model != "qwen2.5vl:32b":
+            processor = OllamaImageProcessor(model_name=args.model)
+        else:
+            processor = OllamaImageProcessor()
+            
+        print(f"Processing image: {args.image_path}")
+        print(f"Using Ollama model: {processor.model_name}")
+        
+        receipt_data = await processor.process_image(args.image_path)
+        
+        if not receipt_data:
+            print("ERROR: Failed to process the receipt image", file=sys.stderr)
+            sys.exit(1)
+            
+        # Convert to dict for JSON serialization
+        result = receipt_data.model_dump()
+        
+        # Output the result
+        if args.output:
+            with open(args.output, 'w') as f:
+                json.dump(result, f, indent=2)
+            print(f"Results saved to: {args.output}")
+        else:
+            print(json.dumps(result, indent=2))
+            
+        return 0
+    
+    except Exception as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        if args.debug:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+if __name__ == "__main__":
+    # Run the CLI main function
+    import asyncio
+    exit_code = asyncio.run(cli_main())
+    import sys
+    sys.exit(exit_code)

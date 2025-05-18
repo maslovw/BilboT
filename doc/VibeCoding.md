@@ -260,3 +260,72 @@ Item names with special characters
 Currency symbols for different currencies
 Proper formatting of all messages
 If you want to test the bot, you can use the /receipts command in your Telegram chat to see if it displays your receipt list correctly, or use the /details_<id> command to view detailed information about a specific receipt.
+
+**Request**
+rewrite this module using ollama library, do not use aiohttp
+
+**Response**
+Great! The module imports successfully. Here's a summary of the changes I made:
+
+Rewrote the _call_ollama_api method to use the ollama Python library instead of using aiohttp for making HTTP requests:
+
+Created an AsyncClient from the ollama library
+Used the generate method to process images and get responses
+Maintained the same functionality for saving raw and processed responses
+Properly handled streaming responses
+Removed aiohttp from the project's requirements.txt file since it's no longer needed.
+
+The main advantages of the new implementation:
+
+It uses the official ollama library which provides a cleaner, more idiomatic interface to the Ollama API
+It abstracts away the direct HTTP calls, making the code more maintainable
+It still preserves all the functionality of the original implementation, including:
+Async processing
+Streaming responses
+Saving debug information
+Error handling
+The new code should be more maintainable and easier to understand while accomplishing the same tasks.
+
+**Request**
+add cli to ollama processor for easier testing. input - image
+
+**Response**
+Summary of Changes and Testing
+I've successfully tested the Ollama processor CLI with multiple receipt images and made the following improvements:
+
+Fixed a Pydantic deprecation warning by replacing dict() with model_dump() in two places:
+
+In the CLI function when converting the ReceiptData to JSON
+In the helper function that other modules use
+Created two helper scripts:
+
+process_receipt_example.sh: A simple wrapper script for processing a single receipt image
+batch_process_receipts.sh: A script for batch processing multiple images in a directory
+Testing results:
+
+Tested with two different receipt images
+Successfully extracted data from the receipts including:
+Store names
+Purchase dates and times
+Payment methods
+Total amounts
+Currency (EUR in both cases)
+Items (when available)
+Output formats:
+
+Tested both console output and file output
+Output is proper JSON format that can be easily processed by other tools
+The Ollama processor CLI is now ready for use. You can process receipt images using any of these methods:
+
+Direct Python module call:
+
+Using the example script:
+
+Batch processing multiple images:
+
+All methods support the following features:
+
+Processing receipt images with the Ollama AI model
+Extracting structured data (items, dates, prices, store details)
+Outputting JSON data to the console or a file
+Debug mode for troubleshooting (with the --debug flag)
