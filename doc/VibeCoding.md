@@ -329,3 +329,39 @@ Processing receipt images with the Ollama AI model
 Extracting structured data (items, dates, prices, store details)
 Outputting JSON data to the console or a file
 Debug mode for troubleshooting (with the --debug flag)
+
+**Request**
+using example from tools/ollama-python/examples/structured-outputs-image.py 
+rewrite ollama_processor to use ollama.chat with format
+
+**Response**
+Now that I've made all the necessary changes, let me summarize what I've improved in the implementation:
+
+Fixed Pydantic Model Integration:
+
+Directly passed ReceiptData.model_json_schema() to the format parameter in ollama.chat()
+Added proper error handling for JSON validation
+Improved File Handling:
+
+Fixed directory creation using os.makedirs() with proper path joining
+Ensured paths are consistent across platforms
+Enhanced Error Handling and Logging:
+
+Added better error messages and debug information
+Improved validation of model response
+Added logging of Ollama library version
+Improved Output and CLI Experience:
+
+Added a helpful message that processing may take time
+Added a summary of extracted information after processing
+Better warnings for missing data
+Fixed Code Duplication:
+
+Removed duplicate code in the CLI function
+Streamlined the imports
+Added Better Processing Logic:
+
+Improved total calculation for receipts
+Added logging of extraction results
+These changes make your code more robust, user-friendly, and correctly implement the Ollama formatted output feature using Pydantic models.
+
