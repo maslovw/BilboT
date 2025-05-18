@@ -76,6 +76,29 @@ async def test_receipt_parsing():
         print(f"Currency: {receipt_data.get('currency')}")
         print(f"Total amount: {receipt_data.get('total_amount')}")
         
+        # Print total amount validation results if available
+        if 'total_amount_validated' in receipt_data:
+            if receipt_data['total_amount_validated']:
+                print("✅ Total amount validation: PASSED")
+            else:
+                calculated_total = receipt_data.get('calculated_total')
+                difference = receipt_data.get('total_difference')
+                print(f"⚠️ Total amount validation: FAILED")
+                print(f"   Stated total: {receipt_data['total_amount']}")
+                print(f"   Calculated from items: {calculated_total:.2f}")
+                print(f"   Difference: {difference:.2f} {receipt_data.get('currency', '')}")
+        elif 'items' in receipt_data and receipt_data['items']:
+            # Calculate and display total from items if not already provided
+            calculated_total = sum(item['price'] for item in receipt_data['items'])
+            print(f"Calculated total from items: {calculated_total:.2f}")
+            
+            if 'total_amount' in receipt_data and receipt_data['total_amount'] is not None:
+                difference = abs(receipt_data['total_amount'] - calculated_total)
+                if difference <= 0.01:
+                    print("✅ Totals match")
+                else:
+                    print(f"⚠️ Totals differ by {difference:.2f} {receipt_data.get('currency', '')}")
+        
         # Save the full response for reference
         with open("data/test_receipt_result.json", "w") as f:
             json.dump(receipt_data, f, indent=2)

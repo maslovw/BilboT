@@ -177,7 +177,7 @@ cython_debug/
 data/images/
 data/receipts.db
 data/*.json
-data/*.txt
+data/*.*
 
 # Virtual environments
 venv/
