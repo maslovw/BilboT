@@ -114,8 +114,11 @@ class OllamaImageProcessor:
             # Save the timestamp for storing responses
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             
+            # Create an async client instance
+            client = ollama.AsyncClient(host="http://localhost:11434")
+            
             # Call Ollama API with chat method and format parameter
-            response = await ollama.chat(
+            response = await client.chat(
                 model=self.model_name,
                 messages=[
                     {
