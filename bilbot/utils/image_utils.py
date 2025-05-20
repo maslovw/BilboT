@@ -4,12 +4,13 @@ Image utilities for BilboT
 
 import os
 from datetime import datetime
-from PIL import Image  # Using Pillow for potential image processing in the future
+from PIL import Image
 import logging
 import json
 
 from bilbot.utils.config import get_image_storage_path
 from bilbot.utils.ollama_processor import process_receipt_image
+from bilbot.utils.image_preprocessing import preprocess_image, detect_and_correct_skew
 from bilbot.database.db_manager import update_receipt_with_extracted_data, save_receipt_items
 
 logger = logging.getLogger(__name__)
@@ -91,6 +92,30 @@ def get_receipt_image_path(user_id, chat_id, message_id, received_date):
     # We don't know the exact timestamp in the filename, so return the directory
     return date_path
 
+def preprocess_receipt_image(image_path):
+    """
+    Apply image preprocessing techniques to enhance receipt image for better OCR results.
+    
+    Args:
+        image_path (str): Path to the receipt image
+        
+    Returns:
+        str: Path to the preprocessed image
+    """
+    try:
+        logger.info(f"Starting image preprocessing for OCR enhancement: {image_path}")
+        
+        # Skip rotation/deskewing as requested
+        # Apply preprocessing enhancements directly to the original image
+        preprocessed_path = preprocess_image(image_path)
+        logger.info(f"Preprocessing completed: {preprocessed_path}")
+        
+        return preprocessed_path
+    except Exception as e:
+        logger.error(f"Error in image preprocessing: {e}")
+        # Return the original image path if preprocessing fails
+        return image_path
+
 async def process_and_save_receipt_data(receipt_id, image_path):
     """
     Process a receipt image with Ollama and save the extracted data to the database.
@@ -105,11 +130,15 @@ async def process_and_save_receipt_data(receipt_id, image_path):
     try:
         logger.info(f"Processing receipt image for receipt_id {receipt_id}: {image_path}")
         
+        # Apply preprocessing to enhance image quality for OCR
+        preprocessed_image = preprocess_receipt_image(image_path)
+        logger.info(f"Using preprocessed image: {preprocessed_image}")
+        
         # Process the image using Ollama
-        receipt_data = await process_receipt_image(image_path)
+        receipt_data = await process_receipt_image(preprocessed_image)
         
         if not receipt_data:
-            logger.error(f"Failed to extract data from receipt image: {image_path}")
+            logger.error(f"Failed to extract data from receipt image: {preprocessed_image}")
             return False
             
         # Save items to database
