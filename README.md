@@ -33,6 +33,7 @@ BilboT is a Telegram bot that helps you manage receipts by storing photos and as
 - Python 3.6+
 - A Telegram Bot Token (obtain from [@BotFather](https://t.me/botfather))
 - [Ollama](https://ollama.ai/download) installed locally for AI image processing
+- (Optional) An OpenAI API key if you want to use the ChatGPT image analysis backend
 
 ### Installation
 
@@ -93,7 +94,7 @@ python bilbot.py
 
 ## AI Image Processing
 
-BilboT uses Ollama with the Qwen2.5vl:32b model for receipt image processing. This allows the bot to:
+BilboT uses Ollama with the Qwen2.5vl:32b model for receipt image processing. If you have an OpenAI API key, you can alternatively use ChatGPT's vision model via `ChatGPTImageProcessor`. This allows the bot to:
 
 1. Extract text from receipt images
 2. Identify individual items and their prices
@@ -101,6 +102,10 @@ BilboT uses Ollama with the Qwen2.5vl:32b model for receipt image processing. Th
 4. Structure the data for easy retrieval
 
 The AI processing happens automatically when you send a receipt image. The structured data is then stored in the database for future reference.
+To use the ChatGPT backend, set the `OPENAI_API_KEY` environment variable and run:
+```bash
+python -m bilbot.utils.chatgpt_processor <image_path>
+```
 
 ## Project Structure
 
