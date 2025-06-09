@@ -42,8 +42,16 @@ async def main():
         logger.error("Failed to retrieve bot token from keyring")
         return
 
-    # Create the Application and pass it the bot token
-    application = Application.builder().token(token).build()
+    # Create the Application with slightly relaxed timeouts to mitigate
+    # occasional network read errors during polling
+    application = (
+        Application.builder()
+        .token(token)
+        .connect_timeout(10.0)
+        .read_timeout(10.0)
+        .http_version("1.1")
+        .build()
+    )
 
     # Initialize the database
     init_database()
