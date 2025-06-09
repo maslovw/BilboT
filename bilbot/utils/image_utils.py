@@ -10,7 +10,7 @@ import json
 
 from bilbot.utils.config import get_image_storage_path
 from bilbot.utils.ollama_processor import process_receipt_image
-from bilbot.utils.image_preprocessing import preprocess_image, detect_and_correct_skew
+from bilbot.utils.image_preprocessing import preprocess_image
 from bilbot.database.db_manager import update_receipt_with_extracted_data, save_receipt_items
 
 logger = logging.getLogger(__name__)
