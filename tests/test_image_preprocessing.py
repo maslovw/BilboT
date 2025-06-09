@@ -76,6 +76,7 @@ def main():
     parser = argparse.ArgumentParser(description="Test image preprocessing for OCR")
     parser.add_argument("image_path", help="Path to the receipt image to preprocess")
     parser.add_argument("--allow-rotation", action="store_true", help="Allow image rotation/deskewing")
+    parser.add_argument("--crop", action="store_true", help="Crop receipt before enhancement")
     args = parser.parse_args()
     
     if not os.path.exists(args.image_path):
@@ -86,7 +87,11 @@ def main():
     
     # Apply preprocessing directly without deskewing step unless explicitly allowed
     print("Enhancing image...")
-    preprocessed_path = preprocess_image(args.image_path, allow_rotation=args.allow_rotation)
+    preprocessed_path = preprocess_image(
+        args.image_path,
+        allow_rotation=args.allow_rotation or args.crop,
+        crop=args.crop,
+    )
     
     # Create comparison
     print("Creating comparison image...")
