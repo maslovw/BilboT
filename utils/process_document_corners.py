@@ -25,6 +25,7 @@ def parse_args():
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--visualize", action="store_true", help="Create visualization of detected corners")
     parser.add_argument("--base-url", default="http://localhost:11434", help="Base URL for the Ollama server")
+
     
     return parser.parse_args()
 
