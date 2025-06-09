@@ -160,7 +160,7 @@ Install the Ollama software from https://ollama.ai/download
 Pull the Qwen2.5vl:32b model with ollama pull qwen2.5vl:32b
 Run the database schema update script with python patch_db_schema.py
 Install any new Python dependencies with pip install -r requirements.txt
-Start the bot with python bilbot.py or python run_dev.py for development mode
+Start the bot with python bilbot.py or python utils/run_dev.py for development mode
 These new features significantly enhance BilboT's ability to process and organize receipt data, making it more useful for expense tracking and receipt management.
 
 **Request**

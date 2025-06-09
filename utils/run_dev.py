@@ -22,8 +22,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Ensure project root is on the path
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, PROJECT_ROOT)
+
 # Path to the main bot script
-BOT_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bilbot.py")
+BOT_SCRIPT = os.path.join(PROJECT_ROOT, "bilbot.py")
 
 class BotRunner:
     def __init__(self, debug=False):
@@ -108,12 +112,12 @@ def run_dev_server(debug=False, watch=True):
             event_handler = FileChangeHandler(bot_runner)
             observer = Observer()
             
-            # Watch the bot script directory
-            base_dir = os.path.dirname(os.path.abspath(__file__))
+            # Watch the project root directory
+            base_dir = PROJECT_ROOT
             observer.schedule(event_handler, base_dir, recursive=True)
             
             # Also watch the bilbot module directory
-            module_dir = os.path.join(base_dir, "bilbot")
+            module_dir = os.path.join(PROJECT_ROOT, "bilbot")
             if os.path.exists(module_dir):
                 observer.schedule(event_handler, module_dir, recursive=True)
                 

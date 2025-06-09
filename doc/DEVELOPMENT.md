@@ -7,8 +7,8 @@ This document provides guidance for developers working on the BilboT project.
 ```
 bilbot.py                 # Main bot script
 setup.sh                  # Setup script
-setup_token.py            # Token management script
-run_dev.py                # Development mode script
+utils/setup_token.py      # Token management script
+utils/run_dev.py          # Development mode script
 config.json               # Configuration file
 requirements.txt          # Python dependencies
 bilbot/                   # Core module
@@ -44,7 +44,7 @@ tests/                    # Test files
 The project includes a development mode script that automatically reloads the bot when files change:
 
 ```bash
-./run_dev.py --debug
+./utils/run_dev.py --debug
 ```
 
 Options:
@@ -145,7 +145,7 @@ For production deployment:
 
 1. Clone the repository on your server
 2. Run `./setup.sh` to set up the environment
-3. Set up the bot token using `./setup_token.py`
+3. Set up the bot token using `./utils/setup_token.py`
 4. Run the bot as a service (systemd, supervisor, etc.)
 
 Example systemd service file:

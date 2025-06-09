@@ -6,8 +6,13 @@ Simulates sending multiple messages to test the rate limiting.
 
 import asyncio
 import logging
+import os
+import sys
 from datetime import datetime
 from unittest.mock import MagicMock, AsyncMock
+
+# Ensure project root on path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from bilbot.utils.rate_limiter import rate_limiter, check_rate_limit
 
