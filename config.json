@@ -17,5 +17,10 @@
         "global_per_minute": 60,
         "enabled": true
     },
+    "ai_processing": {
+        "provider": "ollama",
+        "model": "qwen2.5vl:7b",
+        "base_url": "http://localhost:11434"
+    },
     "debug": true
 }

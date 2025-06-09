@@ -40,20 +40,16 @@ class ReceiptData(BaseModel):
     total_amount_validated: Optional[bool] = Field(None, description="Whether the total amount matches sum of items")
 
 class OllamaImageProcessor:
-    """
-    Process receipt images using Ollama and the specified vision model.
-    """
-    
-    def __init__(self, model_name: str = DEFAULT_MODEL, max_context_length: int = 1024*10):
-        """
-        Initialize the Ollama image processor.
-        
-        Args:
-            model_name: The name of the Ollama model to use
-            max_context_length: Maximum context length for the model
-        """
+    """Process receipt images using Ollama and the specified vision model."""
+
+    DEFAULT_BASE_URL = "http://localhost:11434"
+
+    def __init__(self, model_name: str = DEFAULT_MODEL, base_url: str = DEFAULT_BASE_URL, max_context_length: int = 1024*10):
+        """Initialize the Ollama image processor."""
+
         self.model_name = model_name
         self.max_context_length = max_context_length
+        self.base_url = base_url
         self.system_prompt = (
             "You are a receipt analysis assistant. Analyze receipt images to extract structured data."
         )
@@ -152,7 +148,7 @@ class OllamaImageProcessor:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             
             # Create an async client instance
-            client = ollama.AsyncClient(host="http://localhost:11434")
+            client = ollama.AsyncClient(host=self.base_url)
             
             # Call Ollama API with chat method and format parameter
             response = await client.chat(
@@ -565,7 +561,12 @@ class OllamaImageProcessor:
         }
 
 # Helper functions to use in other modules
-async def process_receipt_image(image_path: str, draw_boxes: bool = False, model_name: str = DEFAULT_MODEL) -> Optional[Dict]:
+async def process_receipt_image(
+    image_path: str,
+    draw_boxes: bool = False,
+    model_name: str = DEFAULT_MODEL,
+    base_url: str = OllamaImageProcessor.DEFAULT_BASE_URL,
+) -> Optional[Dict]:
     """
     Process a receipt image and return structured data.
     
@@ -573,11 +574,12 @@ async def process_receipt_image(image_path: str, draw_boxes: bool = False, model
         image_path: Path to the receipt image
         draw_boxes: Whether to draw bounding boxes on the image and save for debugging
         model_name: The name of the Ollama model to use
+        base_url: Base URL of the Ollama server
         
     Returns:
         Optional[Dict]: Structured data extracted from the receipt, or None if processing failed
     """
-    processor = OllamaImageProcessor(model_name=model_name)
+    processor = OllamaImageProcessor(model_name=model_name, base_url=base_url)
     logger.info(f"Processing image: {image_path}")
     logger.info(f"Using Ollama model: {processor.model_name}")
     receipt_data = await processor.process_image(image_path, draw_boxes=draw_boxes)
@@ -624,6 +626,7 @@ async def cli_main():
     parser.add_argument("--output", "-o", help="Output JSON file path (default: print to stdout)")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--draw", action="store_true", help="Draw bounding boxes on the image and save for debugging")
+    parser.add_argument("--base-url", default=OllamaImageProcessor.DEFAULT_BASE_URL, help="Base URL for the Ollama server")
     
     args = parser.parse_args()
     
@@ -636,7 +639,7 @@ async def cli_main():
     
     try:
         # Process the image
-        processor = OllamaImageProcessor(model_name=args.model)
+        processor = OllamaImageProcessor(model_name=args.model, base_url=args.base_url)
             
         print(f"Processing image: {args.image_path}")
         print(f"Using Ollama model: {processor.model_name}")

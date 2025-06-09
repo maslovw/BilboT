@@ -20,6 +20,7 @@ def parse_args():
     parser.add_argument("--output", "-o", help="Output JSON file path (default: print to stdout)")
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--visualize", action="store_true", help="Create visualization of detected corners")
+    parser.add_argument("--base-url", default="http://localhost:11434", help="Base URL for the Ollama server")
     
     return parser.parse_args()
 
@@ -41,7 +42,8 @@ async def main():
         result = await detect_and_process_document(
             args.image_path,
             visualize=args.visualize,
-            model_name=args.model
+            model_name=args.model,
+            base_url=args.base_url,
         )
         
         # Output the result

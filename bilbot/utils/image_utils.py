@@ -4,12 +4,23 @@ Image utilities for BilboT
 
 import os
 from datetime import datetime
-from PIL import Image
 import logging
 import json
 
-from bilbot.utils.config import get_image_storage_path
-from bilbot.utils.ollama_processor import process_receipt_image
+from bilbot.utils.config import (
+    get_image_storage_path,
+    get_ai_provider,
+    get_ai_model,
+    get_ai_base_url,
+)
+from bilbot.utils.ollama_processor import (
+    process_receipt_image as ollama_process_receipt_image,
+    DEFAULT_MODEL as OLLAMA_DEFAULT_MODEL,
+)
+from bilbot.utils.chatgpt_processor import (
+    process_receipt_image as chatgpt_process_receipt_image,
+    DEFAULT_MODEL as CHATGPT_DEFAULT_MODEL,
+)
 from bilbot.utils.image_preprocessing import preprocess_image
 from bilbot.database.db_manager import update_receipt_with_extracted_data, save_receipt_items
 
@@ -134,8 +145,27 @@ async def process_and_save_receipt_data(receipt_id, image_path):
         preprocessed_image = preprocess_receipt_image(image_path)
         logger.info(f"Using preprocessed image: {preprocessed_image}")
         
-        # Process the image using Ollama
-        receipt_data = await process_receipt_image(preprocessed_image)
+        # Choose AI backend
+        provider = get_ai_provider()
+        model_name = get_ai_model()
+        base_url = get_ai_base_url()
+
+        if provider.lower() == "chatgpt":
+            model_name = model_name or CHATGPT_DEFAULT_MODEL
+            logger.info(f"Processing image with ChatGPT model: {model_name}")
+            receipt_data = await chatgpt_process_receipt_image(
+                preprocessed_image, model_name=model_name
+            )
+        else:
+            model_name = model_name or OLLAMA_DEFAULT_MODEL
+            logger.info(
+                f"Processing image with Ollama model: {model_name} at {base_url}"
+            )
+            receipt_data = await ollama_process_receipt_image(
+                preprocessed_image,
+                model_name=model_name,
+                base_url=base_url,
+            )
         
         if not receipt_data:
             logger.error(f"Failed to extract data from receipt image: {preprocessed_image}")

@@ -70,11 +70,11 @@ class DocumentCorners(BaseModel):
 
 
 class OllamaCornersProcessor:
-    """
-    Process images using Ollama to detect document corners for cropping and deskewing.
-    """
-    
-    def __init__(self, model_name: str = DEFAULT_CORNER_MODEL, max_context_length: int = 4096):
+    """Process images using Ollama to detect document corners for cropping and deskewing."""
+
+    DEFAULT_BASE_URL = "http://localhost:11434"
+
+    def __init__(self, model_name: str = DEFAULT_CORNER_MODEL, base_url: str = DEFAULT_BASE_URL, max_context_length: int = 4096):
         """
         Initialize the Ollama document corner detector.
         
@@ -84,6 +84,7 @@ class OllamaCornersProcessor:
         """
         self.model_name = model_name
         self.max_context_length = max_context_length
+        self.base_url = base_url
         self.system_prompt = (
             #"You are a document corner detector. Find the four corners of the main document in the image."
         )
@@ -179,7 +180,7 @@ class OllamaCornersProcessor:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             
             # Create an async client instance
-            client = ollama.AsyncClient(host="http://localhost:11434")
+            client = ollama.AsyncClient(host=self.base_url)
             
             # Call Ollama API with chat method and format parameter
             response = await client.chat(
@@ -373,9 +374,12 @@ class OllamaCornersProcessor:
             return image_path
 
 # Helper functions to use in other modules
-async def detect_and_process_document(image_path: str, 
-                                     visualize: bool = False, 
-                                     model_name: str = DEFAULT_CORNER_MODEL) -> Dict[str, Any]:
+async def detect_and_process_document(
+    image_path: str,
+    visualize: bool = False,
+    model_name: str = DEFAULT_CORNER_MODEL,
+    base_url: str = OllamaCornersProcessor.DEFAULT_BASE_URL,
+) -> Dict[str, Any]:
     """
     Detect document corners and perform cropping and deskewing in one step.
     
@@ -387,7 +391,7 @@ async def detect_and_process_document(image_path: str,
     Returns:
         Dict: Results including corners, paths to output images, and status
     """
-    processor = OllamaCornersProcessor(model_name=model_name)
+    processor = OllamaCornersProcessor(model_name=model_name, base_url=base_url)
     logger.info(f"Processing image: {image_path}")
     logger.info(f"Using Ollama model: {processor.model_name}")
     
@@ -428,6 +432,7 @@ async def cli_main():
     parser.add_argument("--debug", action="store_true", help="Enable debug logging")
     parser.add_argument("--visualize", action="store_true", help="Create visualization of detected corners")
     parser.add_argument("--no-deskew", action="store_true", help="Skip the deskewing step")
+    parser.add_argument("--base-url", default=OllamaCornersProcessor.DEFAULT_BASE_URL, help="Base URL for the Ollama server")
     
     args = parser.parse_args()
     
@@ -440,7 +445,7 @@ async def cli_main():
     
     try:
         # Process the image
-        processor = OllamaCornersProcessor(model_name=args.model)
+        processor = OllamaCornersProcessor(model_name=args.model, base_url=args.base_url)
             
         print(f"Processing image: {args.image_path}")
         print(f"Using Ollama model: {processor.model_name}")
