@@ -103,7 +103,7 @@ def get_receipt_image_path(user_id, chat_id, message_id, received_date):
     # We don't know the exact timestamp in the filename, so return the directory
     return date_path
 
-def preprocess_receipt_image(image_path):
+def preprocess_receipt_image(image_path, *, crop: bool = False):
     """
     Apply image preprocessing techniques to enhance receipt image for better OCR results.
     
@@ -115,10 +115,10 @@ def preprocess_receipt_image(image_path):
     """
     try:
         logger.info(f"Starting image preprocessing for OCR enhancement: {image_path}")
-        
-        # Skip rotation/deskewing as requested
-        # Apply preprocessing enhancements directly to the original image
-        preprocessed_path = preprocess_image(image_path)
+
+        # When crop=True the image will be cropped and deskewed to
+        # make text extraction more reliable.
+        preprocessed_path = preprocess_image(image_path, allow_rotation=crop, crop=crop)
         logger.info(f"Preprocessing completed: {preprocessed_path}")
         
         return preprocessed_path
@@ -141,8 +141,8 @@ async def process_and_save_receipt_data(receipt_id, image_path):
     try:
         logger.info(f"Processing receipt image for receipt_id {receipt_id}: {image_path}")
         
-        # Apply preprocessing to enhance image quality for OCR
-        preprocessed_image = preprocess_receipt_image(image_path)
+        # Apply preprocessing to enhance image quality for OCR and crop the receipt
+        preprocessed_image = preprocess_receipt_image(image_path, crop=True)
         logger.info(f"Using preprocessed image: {preprocessed_image}")
         
         # Choose AI backend

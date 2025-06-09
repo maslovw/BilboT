@@ -34,11 +34,14 @@ def preprocess_image(
         image_path: str,
         output_path: Optional[str] = None,
         *,
-        allow_rotation: bool = False
+        allow_rotation: bool = False,
+        crop: bool = False,
 ) -> str:
     """
     One-shot preprocessing routine with advanced contour detection and perspective transformation.
     Simplified implementation based on OpenCV contour detection and perspective transform.
+    When ``crop`` is True the receipt is cropped and deskewed using the
+    detected contour which helps subsequent OCR steps.
     """
     if output_path is None:
         stem, ext = os.path.splitext(image_path)
@@ -52,7 +55,10 @@ def preprocess_image(
         scale = MAX_WIDTH / img.shape[1]
         img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
     
-    # Apply deskew/perspective transform if allowed
+    if crop:
+        allow_rotation = True  # cropping implies perspective transform
+
+    # Apply deskew/perspective transform if allowed (also used for cropping)
     if allow_rotation:
         # Convert to grayscale
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)

@@ -25,6 +25,7 @@ BilboT is a Telegram bot that helps you manage receipts by storing photos and as
   - Per-user limit: 1 message per 10 seconds
   - Global limit: 60 messages per minute across all users
 - Debug mode for restricted access and development
+- Optional cropping and deskewing of receipt images for better OCR
 
 ## Setup
 
@@ -100,6 +101,7 @@ BilboT can analyze receipt images using either an Ollama model or ChatGPT's visi
 2. Identify individual items and their prices
 3. Recognize store names and payment methods
 4. Structure the data for easy retrieval
+5. Optionally crop and deskew receipts before analysis for improved OCR
 
 The AI processing happens automatically when you send a receipt image. The structured data is then stored in the database for future reference.
 If you select the ChatGPT backend, ensure the `OPENAI_API_KEY` environment variable is set. You can test the processor directly with:
