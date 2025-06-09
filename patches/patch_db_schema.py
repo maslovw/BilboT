@@ -5,6 +5,11 @@ Script to update the database schema with new tables for receipt items and addit
 import os
 import sqlite3
 import logging
+import sys
+
+# Ensure the project root is on the path so we can import bilbot
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from bilbot.utils.config import get_database_path
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')

@@ -8,7 +8,7 @@ import sys
 import re
 
 # Get the absolute path to db_manager.py
-db_manager_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bilbot", "database", "db_manager.py")
+db_manager_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "bilbot", "database", "db_manager.py")
 
 with open(db_manager_path, 'r') as f:
     content = f.read()

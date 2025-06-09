@@ -9,8 +9,8 @@ import os
 import sys
 import json
 
-# Add the parent directory to the path so we can import from bilbot
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '.')))
+# Add the project root to the path so we can import from bilbot
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from bilbot.utils.config import get_database_path
 

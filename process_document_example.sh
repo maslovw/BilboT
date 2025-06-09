@@ -53,7 +53,7 @@ TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
 OUTPUT_FILE="data/document_corners_${TIMESTAMP}.json"
 
 # Run the processor with visualization
-python3 process_document_corners.py "$IMAGE_PATH" --model "$MODEL" --output "$OUTPUT_FILE" --visualize
+python3 utils/process_document_corners.py "$IMAGE_PATH" --model "$MODEL" --output "$OUTPUT_FILE" --visualize
 
 # Check if processing was successful
 if [ $? -eq 0 ]; then
