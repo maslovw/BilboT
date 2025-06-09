@@ -32,7 +32,11 @@ logger = logging.getLogger(__name__)
 async def main():
     """Start the bot."""
     # Get the bot token from keyring
+    TOKEN = os.environ.get('BILBOT_TELEGRAM_TOKEN', None)  # Debugging line to check if token is set
+
     token = get_bot_token()
+    if not token:
+        token = TOKEN  # Fallback to environment variable if not found in keyring
     
     if not token:
         logger.error("Failed to retrieve bot token from keyring")
