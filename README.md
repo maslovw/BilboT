@@ -32,7 +32,7 @@ BilboT is a Telegram bot that helps you manage receipts by storing photos and as
 
 - Python 3.6+
 - A Telegram Bot Token (obtain from [@BotFather](https://t.me/botfather))
-- [Ollama](https://ollama.ai/download) installed locally for AI image processing
+- [Ollama](https://ollama.ai/download) installed locally if you use the Ollama backend for image processing
 - (Optional) An OpenAI API key if you want to use the ChatGPT image analysis backend
 
 ### Installation
@@ -94,7 +94,7 @@ python bilbot.py
 
 ## AI Image Processing
 
-BilboT uses Ollama with the Qwen2.5vl:32b model for receipt image processing. If you have an OpenAI API key, you can alternatively use ChatGPT's vision model via `ChatGPTImageProcessor`. This allows the bot to:
+BilboT can analyze receipt images using either an Ollama model or ChatGPT's vision API. Select the backend by setting the `ai_processing.provider` value in `config.json` to `"ollama"` or `"chatgpt"`. This allows the bot to:
 
 1. Extract text from receipt images
 2. Identify individual items and their prices
@@ -102,10 +102,11 @@ BilboT uses Ollama with the Qwen2.5vl:32b model for receipt image processing. If
 4. Structure the data for easy retrieval
 
 The AI processing happens automatically when you send a receipt image. The structured data is then stored in the database for future reference.
-To use the ChatGPT backend, set the `OPENAI_API_KEY` environment variable and run:
+If you select the ChatGPT backend, ensure the `OPENAI_API_KEY` environment variable is set. You can test the processor directly with:
 ```bash
 python -m bilbot.utils.chatgpt_processor <image_path>
 ```
+If you use the Ollama backend, the `ai_processing.base_url` option controls the server URL (default: `http://localhost:11434`).
 
 ## Project Structure
 
@@ -131,6 +132,10 @@ Configuration is stored in `config.json` and includes the following sections:
   - `per_user_seconds`: Minimum seconds between messages for a single user (default: 10)
   - `global_per_minute`: Maximum messages allowed per minute across all users (default: 60)
   - `enabled`: Whether rate limiting is enabled (default: true)
+- `ai_processing`: Image processing backend configuration
+  - `provider`: `ollama` (default) or `chatgpt`
+  - `model`: Model name to use for the selected provider
+  - `base_url`: URL of the Ollama server (default: `http://localhost:11434`)
 - `debug`: Enable debug mode to restrict access to authorized users
 
 ### Debug Mode

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""
-Example script showing how to use the receipt processor CLI.
-This is just a wrapper around the actual CLI in the ollama_processor.py file.
-"""
+
+"""Example script for running the receipt processor using the configured AI
+backend."""
+
 
 if __name__ == "__main__":
     import sys
@@ -12,7 +12,12 @@ if __name__ == "__main__":
 
     from bilbot.utils.ollama_processor import cli_main
     import asyncio
-    
-    # Run the CLI
+    from bilbot.utils.config import get_ai_provider
+
+    if get_ai_provider().lower() == "chatgpt":
+        from bilbot.utils.chatgpt_processor import cli_main
+    else:
+        from bilbot.utils.ollama_processor import cli_main
+        
     exit_code = asyncio.run(cli_main())
     sys.exit(exit_code)

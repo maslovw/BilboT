@@ -106,3 +106,20 @@ def is_debug_mode():
     """
     config = load_config()
     return config.get('debug', False)
+
+def get_ai_provider():
+    """Return the configured AI backend provider."""
+    config = load_config()
+    return config.get('ai_processing', {}).get('provider', 'ollama')
+
+
+def get_ai_model():
+    """Return the model name for the configured AI backend, if any."""
+    config = load_config()
+    return config.get('ai_processing', {}).get('model')
+
+
+def get_ai_base_url() -> str:
+    """Return the base URL for the configured AI backend."""
+    config = load_config()
+    return config.get('ai_processing', {}).get('base_url', 'http://localhost:11434')
