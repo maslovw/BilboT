@@ -3,8 +3,13 @@
 backend."""
 
 if __name__ == "__main__":
-    import asyncio
     import sys
+    import os
+    # Ensure project root is on the path for local imports
+    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+    from bilbot.utils.ollama_processor import cli_main
+    import asyncio
 
     from bilbot.utils.config import get_ai_provider
 

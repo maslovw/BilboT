@@ -7,6 +7,7 @@ import asyncio
 import os
 import logging
 import json
+import sys
 from datetime import datetime
 
 # Configure logging
@@ -16,6 +17,9 @@ logging.basicConfig(
 )
 
 # Import the receipt processing function
+# Ensure project root on path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from bilbot.utils.ollama_processor import process_receipt_image
 
 async def test_receipt_parsing():

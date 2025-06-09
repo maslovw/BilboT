@@ -12,6 +12,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
+# Ensure project root on path
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from bilbot.utils.ollama_processor import ReceiptData, ReceiptItem, OllamaImageProcessor
 
 # Set up logging
